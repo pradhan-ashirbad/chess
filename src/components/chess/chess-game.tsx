@@ -57,6 +57,20 @@ export function ChessGame() {
 
   const handleMove = useCallback(
     (from: Square, to: Square) => {
+      if (from === to) {
+        // Clicked on the same square, just deselect
+        if (selectedSquare) {
+            const piece = game.get(from);
+            if (piece && piece.color === game.turn()) {
+                setSelectedSquare(from);
+                setLegalMoves(game.moves({ square: from, verbose: true }));
+            } else {
+                setSelectedSquare(null);
+                setLegalMoves([]);
+            }
+        }
+        return;
+      }
       try {
         const newGame = new Chess(game.fen());
         const move = newGame.move({ from, to, promotion: "q" }); // Default promotion to Queen
@@ -74,7 +88,7 @@ export function ChessGame() {
         setLegalMoves([]);
       }
     },
-    [game, updateBoard, checkGameOver]
+    [game, updateBoard, checkGameOver, selectedSquare]
   );
   
   const handleSquareClick = useCallback(
