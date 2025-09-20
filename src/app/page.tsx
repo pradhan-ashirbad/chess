@@ -16,18 +16,28 @@ export default function Home() {
   const { toast } = useToast();
 
   const createNewGame = async () => {
-    const newGameId = Math.random().toString(36).substr(2, 9);
-    const newGame = new Chess();
-    await createFirebaseGame(newGameId, newGame);
-    
-    const gameUrl = `${window.location.origin}/game/${newGameId}`;
-    navigator.clipboard.writeText(gameUrl).then(() => {
+    try {
+      const newGameId = Math.random().toString(36).substr(2, 9);
+      const newGame = new Chess();
+      await createFirebaseGame(newGameId, newGame);
+      
+      const gameUrl = `${window.location.origin}/game/${newGameId}`;
+      await navigator.clipboard.writeText(gameUrl);
+
       toast({
         title: "Game URL Copied!",
         description: "The game URL has been copied to your clipboard.",
       });
+
       router.push(`/game/${newGameId}`);
-    });
+    } catch (error) {
+      console.error("Failed to create new game:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create a new game. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const joinGame = (e: React.FormEvent) => {

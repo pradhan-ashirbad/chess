@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Undo2 } from "lucide-react";
 import { ChessPiece } from "./chess-piece";
-import { subscribeToGame, updateGame, joinGame as joinFirebaseGame } from "@/lib/firebase";
+import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame } from "@/lib/firebase";
 
 export function ChessGame({ gameId }: { gameId: string }) {
   const [game, setGame] = useState(new Chess());
@@ -29,7 +29,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
     w: Piece[];
     b: Piece[];
   }>({ w: [], b: [] });
-  const [playerColor, setPlayerColor] = useState<'w' | 'b' | null>(null);
+  const [playerColor, setPlayerColor] = useState<'w' | 'b' | 'spectator' | null>(null);
   const [isMyTurn, setIsMyTurn] = useState(false);
 
   const updateGameState = useCallback((currentGame: Chess) => {
@@ -50,6 +50,11 @@ export function ChessGame({ gameId }: { gameId: string }) {
           const newGame = new Chess(gameData.fen);
           setGame(newGame);
           updateGameState(newGame);
+        } else if (!gameData) {
+          // If game data is null/undefined, maybe the doc was deleted.
+          // Or if it's a new game, we create it.
+          const newGame = new Chess();
+          createNewGame(gameId, newGame);
         }
       });
       return () => unsubscribe();
@@ -178,7 +183,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
   );
 
   const undoMove = useCallback(async () => {
-    if (gameOver.isGameOver || history.length === 0) return;
+    if (gameOver.isGameOver || game.history().length === 0) return;
     const newGame = new Chess(game.fen());
     newGame.undo();
     setGame(newGame);
@@ -216,6 +221,16 @@ export function ChessGame({ gameId }: { gameId: string }) {
       </div>
     </div>
   );
+  
+  const getPlayerMessage = () => {
+    if (playerColor === 'spectator') return 'You are spectating.';
+    if (playerColor) {
+      const color = playerColor === 'w' ? 'White' : 'Black';
+      const turnMessage = isMyTurn ? " It's your turn." : " Waiting for opponent.";
+      return `You are playing as ${color}.${turnMessage}`;
+    }
+    return 'Joining game...';
+  }
 
   return (
     <>
@@ -241,7 +256,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
             )}
           </div>
           <div className="absolute right-0 flex gap-2">
-            <Button onClick={undoMove} disabled={history.length < 1} variant="secondary" className="rounded-full shadow-sm">
+            <Button onClick={undoMove} disabled={history.length < 2 || playerColor === 'spectator'} variant="secondary" className="rounded-full shadow-sm">
               <Undo2 />
             </Button>
           </div>
@@ -258,8 +273,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
            <CapturedPiecesDisplay pieces={capturedPieces.w} player="White" />
         </div>
         <div className="text-center text-sm text-muted-foreground mt-2">
-          {playerColor ? `You are playing as ${playerColor === 'w' ? 'White' : 'Black'}.` : 'Joining game...'}
-          {playerColor && (isMyTurn ? " It's your turn." : " Waiting for opponent.")}
+          {getPlayerMessage()}
         </div>
       </div>
       <AlertDialog open={gameOver.isGameOver} onOpenChange={(open) => !open && resetGame()}>
