@@ -19,8 +19,10 @@ import { RefreshCw, Undo2 } from "lucide-react";
 import { ChessPiece } from "./chess-piece";
 import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame as createFirebaseGame } from "@/lib/firebase";
 import { PromotionDialog } from "./promotion-dialog";
+import { getDoc } from "firebase/firestore";
+import { getGameRef } from "@/lib/firebase";
 
-export function ChessGame({ gameId }: { gameId?: string }) {
+export function ChessGame({ gameId }: { gameId: string }) {
   const [game, setGame] = useState(new Chess());
   const [board, setBoard] = useState(game.board());
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
@@ -34,8 +36,6 @@ export function ChessGame({ gameId }: { gameId?: string }) {
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [lastMove, setLastMove] = useState<{ from: Square, to: Square } | null>(null);
   const [promotionMove, setPromotionMove] = useState<{ from: Square; to: Square; } | null>(null);
-
-  const isMultiplayer = !!gameId;
 
   const updateCapturedPieces = useCallback((currentGame: Chess) => {
     const newCaptured = { w: [], b: [] };
@@ -106,11 +106,7 @@ export function ChessGame({ gameId }: { gameId?: string }) {
     setBoard(currentGame.board());
     updateCapturedPieces(currentGame);
     checkGameOver(currentGame);
-    if(isMultiplayer) {
-      setIsMyTurn(currentColor === currentGame.turn());
-    } else {
-      setIsMyTurn(true);
-    }
+    setIsMyTurn(currentColor === currentGame.turn());
     const history = currentGame.history({ verbose: true });
     const lastMoveFromHistory = history.pop();
     if(lastMoveFromHistory) {
@@ -118,11 +114,11 @@ export function ChessGame({ gameId }: { gameId?: string }) {
     } else {
       setLastMove(null);
     }
-  }, [isMultiplayer, updateCapturedPieces, checkGameOver]);
+  }, [updateCapturedPieces, checkGameOver]);
 
   useEffect(() => {
     let unsubscribe: () => void;
-    if (isMultiplayer && gameId) {
+    if (gameId) {
       joinFirebaseGame(gameId).then(color => {
         setPlayerColor(color);
         // Initial sync
@@ -132,6 +128,10 @@ export function ChessGame({ gameId }: { gameId?: string }) {
             const newGame = new Chess(gameData.fen);
             setGame(newGame);
             updateGameState(newGame, color);
+          } else {
+            createFirebaseGame(gameId).then(() => {
+               updateGameState(new Chess(), color);
+            })
           }
         });
       });
@@ -145,9 +145,6 @@ export function ChessGame({ gameId }: { gameId?: string }) {
             updateGameState(newGame, prevColor);
             return prevColor;
           });
-          setLastMove(gameData.lastMove || null);
-        } else if (!gameData) {
-          createFirebaseGame(gameId);
         }
       });
     }
@@ -157,42 +154,32 @@ export function ChessGame({ gameId }: { gameId?: string }) {
         unsubscribe();
       }
     };
-  }, [gameId, isMultiplayer, updateGameState]);
+  }, [gameId, updateGameState]);
 
 
   const resetGame = useCallback(async () => {
-    const newGame = new Chess();
-    if(isMultiplayer && gameId) {
-        await createFirebaseGame(gameId);
-    } else {
-        setGame(newGame);
-        updateGameState(newGame, playerColor);
-        setGameOver({ isGameOver: false, message: "" });
+    if(gameId) {
+      await createFirebaseGame(gameId);
     }
-  }, [gameId, isMultiplayer, updateGameState, playerColor]);
+  }, [gameId]);
 
 
   const handleMove = useCallback(
     async (from: Square, to: Square, promotion?: PieceSymbol) => {
       const currentTurn = game.turn();
-      if (from === to || (isMultiplayer && playerColor !== 'spectator' && currentTurn !== playerColor)) return;
+      if (from === to || (playerColor !== 'spectator' && currentTurn !== playerColor)) return;
       
       const newGame = new Chess(game.fen());
       const moveResult = newGame.move({ from, to, promotion });
 
       if (moveResult) {
-        if (isMultiplayer && gameId) {
-            await updateGame(gameId, newGame);
-        } else {
-            setGame(newGame);
-            updateGameState(newGame, playerColor);
-        }
+        await updateGame(gameId, newGame);
       }
       
       setSelectedSquare(null);
       setLegalMoves([]);
     },
-    [game, gameId, playerColor, isMultiplayer, updateGameState]
+    [game, gameId, playerColor]
   );
   
   const handlePromotion = async (piece: PieceSymbol) => {
@@ -206,17 +193,11 @@ export function ChessGame({ gameId }: { gameId?: string }) {
     (square: Square) => {
       const pieceOnSquare = game.get(square);
 
-      if (gameOver.isGameOver) return;
-      
-      // In multiplayer, spectators can't move.
-      if (isMultiplayer && playerColor === 'spectator') return;
-
-      // Check if it's the current player's turn (works for both single and multi-player)
-      if (pieceOnSquare?.color !== game.turn() && !selectedSquare) return;
+      if (gameOver.isGameOver || playerColor === 'spectator') return;
 
       if (selectedSquare) {
         const move = game.moves({ square: selectedSquare, verbose: true }).find(m => m.to === square);
-        if (move) {
+        if (move && pieceOnSquare?.color !== game.turn()) {
           const piece = game.get(selectedSquare);
           if (
             piece?.type === "p" &&
@@ -243,28 +224,20 @@ export function ChessGame({ gameId }: { gameId?: string }) {
         }
       }
     },
-    [game, selectedSquare, handleMove, gameOver.isGameOver, playerColor, isMultiplayer]
+    [game, selectedSquare, handleMove, gameOver.isGameOver, playerColor]
   );
-
+  
   const undoMove = useCallback(async () => {
     if (playerColor === 'spectator') return;
-    if (game.history().length === 0) return;
+    if (game.history().length < 2) return;
 
     const newGame = new Chess(game.fen());
-    newGame.undo();
+    newGame.undo(); // Undo black's last move
+    newGame.undo(); // Undo white's last move
+
+    await updateGame(gameId, newGame);
     
-    if (isMultiplayer && gameId) {
-      // In multiplayer, a full undo might be complex. A simple implementation
-      // is to only allow undoing the very last move.
-      // Let's just update to the previous state.
-      await updateGame(gameId, newGame);
-    } else {
-        // Single player undo
-        setGame(newGame);
-        updateGameState(newGame, playerColor);
-    }
-    
-  }, [game, gameId, isMultiplayer, updateGameState, playerColor]);
+  }, [game, gameId, playerColor]);
 
   const turn = game.turn();
   const isCheck = game.isCheck();
@@ -298,7 +271,6 @@ export function ChessGame({ gameId }: { gameId?: string }) {
   );
   
   const getPlayerMessage = () => {
-    if (!isMultiplayer) return 'You are playing a local game.';
     if (playerColor === 'spectator') return 'You are spectating.';
     if (playerColor) {
       const color = playerColor === 'w' ? 'White' : 'Black';
@@ -332,7 +304,7 @@ export function ChessGame({ gameId }: { gameId?: string }) {
             )}
           </div>
           <div className="absolute right-0 flex gap-2">
-            <Button onClick={undoMove} disabled={history.length === 0 || playerColor === 'spectator'} variant="secondary" className="rounded-full shadow-sm">
+            <Button onClick={undoMove} disabled={history.length < 2 || playerColor === 'spectator'} variant="secondary" className="rounded-full shadow-sm">
               <Undo2 />
             </Button>
           </div>
@@ -372,5 +344,3 @@ export function ChessGame({ gameId }: { gameId?: string }) {
     </>
   );
 }
-
-    

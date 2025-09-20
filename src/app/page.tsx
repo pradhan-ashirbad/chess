@@ -45,10 +45,6 @@ export default function Home() {
       router.push(`/game/${gameId}`);
     }
   };
-  
-  const playSinglePlayer = () => {
-    router.push('/game');
-  }
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
@@ -61,14 +57,6 @@ export default function Home() {
             <CardTitle className="text-center text-2xl">Play Chess</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-             <Button onClick={playSinglePlayer} className="w-full" variant="secondary">
-              Play Single Player
-            </Button>
-             <div className="flex items-center gap-2">
-              <hr className="w-full" />
-              <span className="text-muted-foreground">OR</span>
-              <hr className="w-full" />
-            </div>
             <Button onClick={handleCreateNewGame} className="w-full">
               Create New Game
             </Button>
