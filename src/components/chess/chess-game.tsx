@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { Chess } from "chess.js";
-import type { Square, Move, Piece, PieceSymbol } from "chess.js";
+import type { Square, Piece, PieceSymbol, Move } from "chess.js";
 import { ChessBoard } from "@/components/chess/chess-board";
 import {
   AlertDialog,
@@ -19,8 +19,6 @@ import { RefreshCw, Undo2 } from "lucide-react";
 import { ChessPiece } from "./chess-piece";
 import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame as createFirebaseGame } from "@/lib/firebase";
 import { PromotionDialog } from "./promotion-dialog";
-import { getDoc } from "firebase/firestore";
-import { getGameRef } from "@/lib/firebase";
 
 export function ChessGame({ gameId }: { gameId: string }) {
   const [game, setGame] = useState(new Chess());
@@ -125,11 +123,8 @@ export function ChessGame({ gameId }: { gameId: string }) {
           if (gameData && gameData.fen) {
             const newGame = new Chess(gameData.fen);
             setGame(newGame);
-            // After setting player color, we can update the game state
-            // which also determines if it's the current player's turn.
             updateGameState(newGame, color);
           } else {
-            // If the game doesn't exist, create it.
             createFirebaseGame(gameId).then(() => {
                updateGameState(new Chess(), color);
             })
@@ -181,20 +176,16 @@ export function ChessGame({ gameId }: { gameId: string }) {
     (square: Square) => {
       const pieceOnSquare = game.get(square);
 
-      // Disallow moves if game is over or player is a spectator
       if (gameOver.isGameOver || playerColor === 'spectator') return;
 
-      // Disallow moves if it's not the player's turn
       if (playerColor !== game.turn()) return;
 
       if (selectedSquare) {
-        // Attempt to make a move from selectedSquare to the clicked square
         const legalMovesForPiece = game.moves({ square: selectedSquare, verbose: true });
         const move = legalMovesForPiece.find(m => m.to === square);
 
         if (move) {
           const piece = game.get(selectedSquare);
-          // Check for promotion
           if (
             piece?.type === "p" &&
             ((piece.color === "w" && selectedSquare[1] === "7" && square[1] === "8") ||
@@ -205,7 +196,6 @@ export function ChessGame({ gameId }: { gameId: string }) {
           }
           handleMove(selectedSquare, square);
         } else {
-          // If the clicked square is not a legal move, check if it's another of the player's pieces
           if (pieceOnSquare && pieceOnSquare.color === game.turn()) {
             setSelectedSquare(square);
           } else {
@@ -213,7 +203,6 @@ export function ChessGame({ gameId }: { gameId: string }) {
           }
         }
       } else {
-        // If no square is selected, select the clicked square if it contains one of the player's pieces
         if (pieceOnSquare && pieceOnSquare.color === game.turn()) {
           setSelectedSquare(square);
         }
@@ -224,12 +213,11 @@ export function ChessGame({ gameId }: { gameId: string }) {
   
   const undoMove = useCallback(async () => {
     if (playerColor === 'spectator') return;
-    // Allow undo only if at least one move for each side has been made
     if (game.history().length < 2) return;
 
     const newGame = new Chess(game.fen());
-    newGame.undo(); // Undo black's last move
-    newGame.undo(); // Undo white's last move
+    newGame.undo();
+    newGame.undo();
 
     await updateGame(gameId, newGame);
     
@@ -240,7 +228,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
   const history = game.history();
 
   const legalMovesForSelectedPiece = selectedSquare
-    ? game.moves({ square: selectedSquare, verbose: true }).map((move) => move.to)
+    ? game.moves({ square: selectedSquare, verbose: true })
     : [];
 
   const CapturedPiecesDisplay = ({

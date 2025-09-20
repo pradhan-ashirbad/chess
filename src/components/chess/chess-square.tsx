@@ -1,3 +1,4 @@
+
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -10,6 +11,7 @@ interface ChessSquareProps {
   piece: Piece | null;
   isSelected: boolean;
   isLegalMove: boolean;
+  isCapture: boolean;
   isLastMove: boolean;
   onClick: () => void;
 }
@@ -20,6 +22,7 @@ export function ChessSquare({
   piece,
   isSelected,
   isLegalMove,
+  isCapture,
   isLastMove,
   onClick,
 }: ChessSquareProps) {
@@ -41,7 +44,12 @@ export function ChessSquare({
 
       {isLegalMove && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-1/3 w-1/3 rounded-full bg-black/20 transition-transform duration-200 ease-in-out group-hover:scale-110"></div>
+          <div
+            className={cn(
+              "h-1/3 w-1/3 rounded-full transition-transform duration-200 ease-in-out group-hover:scale-110",
+              isCapture ? "bg-red-500/50" : "bg-black/20"
+            )}
+          ></div>
         </div>
       )}
     </div>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Piece, Square, Move } from "chess.js";
@@ -10,7 +11,7 @@ interface ChessBoardProps {
   onSquareClick: (square: Square) => void;
   onPieceDrop: (from: Square, to: Square) => void;
   selectedSquare: Square | null;
-  legalMoves: Square[];
+  legalMoves: Move[];
   lastMove: { from: Square, to: Square } | null;
 }
 
@@ -44,6 +45,7 @@ export function ChessBoard({
           const square = `${files[file]}${ranks[rank]}` as Square;
           const isLight = (rank + file) % 2 !== 0;
           const isLastMove = lastMove?.from === square || lastMove?.to === square;
+          const legalMove = legalMoves.find(m => m.to === square);
 
           return (
             <div
@@ -57,7 +59,8 @@ export function ChessBoard({
                 square={square}
                 piece={piece}
                 isSelected={selectedSquare === square}
-                isLegalMove={legalMoves.includes(square)}
+                isLegalMove={!!legalMove}
+                isCapture={legalMove ? legalMove.flags.includes("c") || legalMove.flags.includes("e") : false}
                 isLastMove={isLastMove}
                 onClick={() => onSquareClick(square)}
               />
