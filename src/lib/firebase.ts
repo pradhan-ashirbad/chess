@@ -36,24 +36,31 @@ export const updateGame = async (gameId: string, game: Chess) => {
 export const joinGame = async (gameId: string): Promise<'w' | 'b'> => {
   const gameRef = getGameRef(gameId);
   const docSnap = await getDoc(gameRef);
+
+  if (!docSnap.exists()) {
+    // If game doesn't exist, something is wrong. 
+    // For now, let's just return 'w' and let the game component handle it.
+    // A better approach would be to show an error.
+    return 'w';
+  }
+  
   const gameData = docSnap.data();
 
-  if (gameData && gameData.black) {
-    // Game is full, could be a spectator or returning player.
-    // For simplicity, we'll just assign a role. A more robust system
-    // would handle user authentication to determine which player is returning.
-    // Let's assume for now if both players are present, new joiners are spectators
-    // but we'll assign them a default role ('w') without writing to DB.
-    return 'w'; 
+  if (gameData && gameData.white && gameData.black) {
+    // Game is full
+    return 'w'; // Spectator
   }
 
   if (gameData && !gameData.white) {
     await setDoc(gameRef, { white: 'player1' }, { merge: true });
     return 'w';
-  } else {
+  } else if (gameData && !gameData.black) {
     await setDoc(gameRef, { black: 'player2' }, { merge: true });
     return 'b';
   }
+  
+  // Default case if something is off
+  return 'w';
 };
 
 
