@@ -6,14 +6,23 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const [gameId, setGameId] = useState("");
   const router = useRouter();
+  const { toast } = useToast();
 
   const createNewGame = () => {
     const newGameId = Math.random().toString(36).substr(2, 9);
-    router.push(`/game/${newGameId}`);
+    const gameUrl = `${window.location.origin}/game/${newGameId}`;
+    navigator.clipboard.writeText(gameUrl).then(() => {
+      toast({
+        title: "Game URL Copied!",
+        description: "The game URL has been copied to your clipboard.",
+      });
+      router.push(`/game/${newGameId}`);
+    });
   };
 
   const joinGame = (e: React.FormEvent) => {
