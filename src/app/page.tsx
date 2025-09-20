@@ -15,7 +15,7 @@ export default function Home() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const createNewGame = async () => {
+  const handleCreateNewGame = async () => {
     try {
       const newGameId = Math.random().toString(36).substr(2, 9);
       const newGame = new Chess();
@@ -58,7 +58,7 @@ export default function Home() {
             <CardTitle className="text-center text-2xl">Play Chess</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <Button onClick={createNewGame} className="w-full">
+            <Button onClick={handleCreateNewGame} className="w-full">
               Create New Game
             </Button>
             <div className="flex items-center gap-2">

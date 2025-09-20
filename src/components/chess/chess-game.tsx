@@ -51,8 +51,6 @@ export function ChessGame({ gameId }: { gameId: string }) {
           setGame(newGame);
           updateGameState(newGame);
         } else if (!gameData) {
-          // If game data is null/undefined, maybe the doc was deleted.
-          // Or if it's a new game, we create it.
           const newGame = new Chess();
           createNewGame(gameId, newGame);
         }
@@ -107,12 +105,14 @@ export function ChessGame({ gameId }: { gameId: string }) {
 
   const resetGame = useCallback(async () => {
     const newGame = new Chess();
+    // In a multiplayer game, reset should probably be handled differently,
+    // like resetting players as well. For now, just reset the board.
+    await createNewGame(gameId, newGame);
     setGame(newGame);
     updateGameState(newGame);
     setSelectedSquare(null);
     setLegalMoves([]);
     setGameOver({ isGameOver: false, message: "" });
-    await updateGame(gameId, newGame);
   }, [updateGameState, gameId]);
 
   const checkGameOver = useCallback((currentGame: Chess) => {
@@ -143,15 +143,14 @@ export function ChessGame({ gameId }: { gameId: string }) {
       const moveResult = newGame.move({ from, to, promotion: "q" });
 
       if (moveResult) {
-        setGame(newGame);
-        updateGameState(newGame);
+        // No need to setGame locally, Firestore will trigger update.
         await updateGame(gameId, newGame);
       }
       
       setSelectedSquare(null);
       setLegalMoves([]);
     },
-    [game, updateGameState, gameId, isMyTurn]
+    [game, gameId, isMyTurn]
   );
 
   const handleSquareClick = useCallback(
@@ -184,12 +183,15 @@ export function ChessGame({ gameId }: { gameId: string }) {
 
   const undoMove = useCallback(async () => {
     if (gameOver.isGameOver || game.history().length === 0) return;
+    
     const newGame = new Chess(game.fen());
-    newGame.undo();
-    setGame(newGame);
-    updateGameState(newGame);
-    await updateGame(gameId, newGame);
-  }, [game, updateGameState, gameOver.isGameOver, gameId]);
+    const lastMove = newGame.undo();
+    
+    if (lastMove) {
+      // Don't update game state locally, let firebase sync it
+      await updateGame(gameId, newGame);
+    }
+  }, [game, gameOver.isGameOver, gameId]);
 
   const turn = game.turn();
   const isCheck = game.isCheck();
@@ -256,7 +258,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
             )}
           </div>
           <div className="absolute right-0 flex gap-2">
-            <Button onClick={undoMove} disabled={history.length < 2 || playerColor === 'spectator'} variant="secondary" className="rounded-full shadow-sm">
+            <Button onClick={undoMove} disabled={history.length < 1 || playerColor === 'spectator'} variant="secondary" className="rounded-full shadow-sm">
               <Undo2 />
             </Button>
           </div>
