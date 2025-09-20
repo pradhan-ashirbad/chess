@@ -1,12 +1,62 @@
-import { ChessGame } from "@/components/chess/chess-game";
+
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
+  const [gameId, setGameId] = useState("");
+  const router = useRouter();
+
+  const createNewGame = () => {
+    const newGameId = Math.random().toString(36).substr(2, 9);
+    router.push(`/game/${newGameId}`);
+  };
+
+  const joinGame = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (gameId) {
+      router.push(`/game/${gameId}`);
+    }
+  };
+
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
-      <h1 className="mb-4 text-center font-headline text-4xl font-bold tracking-tight text-foreground/90 sm:mb-6 sm:text-5xl md:text-6xl">
-        Web Chess Arena
-      </h1>
-      <ChessGame />
+      <div className="flex flex-col items-center justify-center">
+        <h1 className="mb-8 text-center font-headline text-4xl font-bold tracking-tight text-foreground/90 sm:text-5xl md:text-6xl">
+          Web Chess Arena
+        </h1>
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center text-2xl">Play Chess</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Button onClick={createNewGame} className="w-full">
+              Create New Game
+            </Button>
+            <div className="flex items-center gap-2">
+              <hr className="w-full" />
+              <span className="text-muted-foreground">OR</span>
+              <hr className="w-full" />
+            </div>
+            <form onSubmit={joinGame} className="flex flex-col gap-2">
+              <Input
+                type="text"
+                placeholder="Enter Game ID to join"
+                value={gameId}
+                onChange={(e) => setGameId(e.target.value)}
+                className="w-full"
+              />
+              <Button type="submit" variant="secondary" disabled={!gameId}>
+                Join Game
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }

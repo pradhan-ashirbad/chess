@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Chess } from "chess.js";
 import type { Square, Move, Piece } from "chess.js";
 import { ChessBoard } from "@/components/chess/chess-board";
@@ -17,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Undo2 } from "lucide-react";
 import { ChessPiece } from "./chess-piece";
 
-export function ChessGame() {
+export function ChessGame({ gameId }: { gameId: string }) {
   const [game, setGame] = useState(new Chess());
   const [board, setBoard] = useState(game.board());
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
@@ -27,12 +28,27 @@ export function ChessGame() {
     w: Piece[];
     b: Piece[];
   }>({ w: [], b: [] });
+  const [playerColor, setPlayerColor] = useState<'w' | 'b' | null>(null);
 
   const updateGameState = useCallback((currentGame: Chess) => {
     setBoard(currentGame.board());
     updateCapturedPieces(currentGame);
     checkGameOver(currentGame);
   }, []);
+  
+  // This is a placeholder for real-time synchronization
+  useEffect(() => {
+    console.log(`Joined game ${gameId}`);
+    // For now, let's just log the game ID.
+    // The first player to join will be white.
+    // In a real implementation, this would involve checking game state on a server.
+    if (!localStorage.getItem(`chess-game-${gameId}`)) {
+      localStorage.setItem(`chess-game-${gameId}`, 'w');
+      setPlayerColor('w');
+    } else if (localStorage.getItem(`chess-game-${gameId}`) === 'w') {
+      setPlayerColor('b');
+    }
+  }, [gameId]);
 
   const updateCapturedPieces = useCallback((currentGame: Chess) => {
     const newCaptured = { w: [], b: [] };
@@ -156,11 +172,8 @@ export function ChessGame() {
 
   const undoMove = useCallback(() => {
     if (gameOver.isGameOver) return;
-    const newGame = new Chess();
-    // Replay history up to the second to last move.
-    game.history({ verbose: true }).slice(0, -1).forEach(move => {
-      newGame.move(move);
-    });
+    const newGame = new Chess(game.fen());
+    newGame.undo();
     setGame(newGame);
     updateGameState(newGame);
   }, [game, updateGameState, gameOver.isGameOver]);
