@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Chess } from "chess.js";
-import type { Square, Piece, Move } from "chess.js";
+import type { Square, Move } from "chess.js";
 import { ChessBoard } from "@/components/chess/chess-board";
-import { GameInfoPanel } from "@/components/chess/game-info-panel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Undo2 } from "lucide-react";
 
 export function ChessGame() {
   const [game, setGame] = useState(new Chess());
@@ -58,16 +59,15 @@ export function ChessGame() {
   const handleMove = useCallback(
     (from: Square, to: Square) => {
       if (from === to) {
-        // Clicked on the same square, just deselect
         if (selectedSquare) {
-            const piece = game.get(from);
-            if (piece && piece.color === game.turn()) {
-                setSelectedSquare(from);
-                setLegalMoves(game.moves({ square: from, verbose: true }));
-            } else {
-                setSelectedSquare(null);
-                setLegalMoves([]);
-            }
+          const piece = game.get(from);
+          if (piece && piece.color === game.turn()) {
+            setSelectedSquare(from);
+            setLegalMoves(game.moves({ square: from, verbose: true }));
+          } else {
+            setSelectedSquare(null);
+            setLegalMoves([]);
+          }
         }
         return;
       }
@@ -90,7 +90,7 @@ export function ChessGame() {
     },
     [game, updateBoard, checkGameOver, selectedSquare]
   );
-  
+
   const handleSquareClick = useCallback(
     (square: Square) => {
       if (gameOver.isGameOver) return;
@@ -98,22 +98,18 @@ export function ChessGame() {
       const piece = game.get(square);
 
       if (selectedSquare) {
-        // If a piece is already selected, try to move
         if (legalMoves.some((move) => move.to === square)) {
           handleMove(selectedSquare, square);
         } else {
-          // If the new square is a valid selection, switch selection
           if (piece && piece.color === game.turn()) {
             setSelectedSquare(square);
             setLegalMoves(game.moves({ square, verbose: true }));
           } else {
-            // Otherwise, deselect
             setSelectedSquare(null);
             setLegalMoves([]);
           }
         }
       } else {
-        // If no piece is selected, select the piece if it's the current player's turn
         if (piece && piece.color === game.turn()) {
           setSelectedSquare(square);
           setLegalMoves(game.moves({ square, verbose: true }));
@@ -131,22 +127,43 @@ export function ChessGame() {
     updateBoard(newGame);
   }, [game, updateBoard, gameOver.isGameOver]);
 
+  const turn = game.turn();
+  const isCheck = game.isCheck();
+  const history = game.history({ verbose: true });
+
   return (
     <>
-      <div className="flex flex-col gap-4 md:flex-row md:gap-8">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 rounded-lg bg-muted p-2 px-3 text-lg font-semibold">
+            <span>Turn:</span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`h-4 w-4 rounded-full ${
+                  turn === "w" ? "bg-primary" : "bg-accent"
+                } border border-foreground/20`}
+              ></span>
+              <span className="capitalize">{turn === "w" ? "White" : "Black"}</span>
+            </div>
+            {isCheck && (
+              <p className="ml-4 font-bold text-lg text-destructive animate-pulse">CHECK!</p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={resetGame} variant="secondary">
+              <RefreshCw className="mr-2 h-4 w-4" /> New Game
+            </Button>
+            <Button onClick={undoMove} disabled={history.length === 0} variant="secondary">
+              <Undo2 className="mr-2 h-4 w-4" /> Undo
+            </Button>
+          </div>
+        </div>
         <ChessBoard
           board={board}
           onSquareClick={handleSquareClick}
           onPieceDrop={handleMove}
           selectedSquare={selectedSquare}
           legalMoves={legalMoves.map((move) => move.to)}
-        />
-        <GameInfoPanel
-          turn={game.turn()}
-          isCheck={game.isCheck()}
-          onNewGame={resetGame}
-          onUndo={undoMove}
-          history={game.history({ verbose: true })}
         />
       </div>
       <AlertDialog open={gameOver.isGameOver} onOpenChange={(open) => !open && resetGame()}>
