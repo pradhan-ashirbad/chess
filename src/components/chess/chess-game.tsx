@@ -81,8 +81,9 @@ export function ChessGame() {
           checkGameOver(newGame);
         }
       } catch (e) {
-        console.error("Invalid move:", e);
-        return; // Invalid move
+        // This is not a user-facing error, so we can just log it.
+        // It happens when a user tries to make an invalid move.
+        return;
       } finally {
         setSelectedSquare(null);
         setLegalMoves([]);
@@ -133,9 +134,14 @@ export function ChessGame() {
 
   return (
     <>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 rounded-lg bg-muted p-2 px-3 text-lg font-semibold">
+      <div className="flex w-full flex-col items-center gap-4">
+        <div className="relative flex w-full items-center justify-center">
+          <div className="absolute left-0 flex gap-2">
+            <Button onClick={resetGame} variant="secondary">
+              <RefreshCw className="mr-2 h-4 w-4" /> New Game
+            </Button>
+          </div>
+          <div className="flex items-center gap-3 rounded-lg bg-card p-2 px-4 text-lg font-semibold shadow-sm">
             <span>Turn:</span>
             <div className="flex items-center gap-2">
               <span
@@ -146,13 +152,10 @@ export function ChessGame() {
               <span className="capitalize">{turn === "w" ? "White" : "Black"}</span>
             </div>
             {isCheck && (
-              <p className="ml-4 font-bold text-lg text-destructive animate-pulse">CHECK!</p>
+              <p className="ml-2 font-bold text-destructive animate-pulse">CHECK!</p>
             )}
           </div>
-          <div className="flex gap-2">
-            <Button onClick={resetGame} variant="secondary">
-              <RefreshCw className="mr-2 h-4 w-4" /> New Game
-            </Button>
+          <div className="absolute right-0 flex gap-2">
             <Button onClick={undoMove} disabled={history.length === 0} variant="secondary">
               <Undo2 className="mr-2 h-4 w-4" /> Undo
             </Button>
