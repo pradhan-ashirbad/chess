@@ -7,14 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { createNewGame as createFirebaseGame } from "@/lib/firebase";
+import { Chess } from "chess.js";
 
 export default function Home() {
   const [gameId, setGameId] = useState("");
   const router = useRouter();
   const { toast } = useToast();
 
-  const createNewGame = () => {
+  const createNewGame = async () => {
     const newGameId = Math.random().toString(36).substr(2, 9);
+    const newGame = new Chess();
+    await createFirebaseGame(newGameId, newGame);
+    
     const gameUrl = `${window.location.origin}/game/${newGameId}`;
     navigator.clipboard.writeText(gameUrl).then(() => {
       toast({

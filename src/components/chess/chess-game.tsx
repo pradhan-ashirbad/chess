@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Chess } from "chess.js";
 import type { Square, Move, Piece } from "chess.js";
 import { ChessBoard } from "@/components/chess/chess-board";
@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Undo2 } from "lucide-react";
 import { ChessPiece } from "./chess-piece";
+import { subscribeToGame, updateGame, joinGame as joinFirebaseGame } from "@/lib/firebase";
 
 export function ChessGame({ gameId }: { gameId: string }) {
   const [game, setGame] = useState(new Chess());
@@ -29,26 +30,32 @@ export function ChessGame({ gameId }: { gameId: string }) {
     b: Piece[];
   }>({ w: [], b: [] });
   const [playerColor, setPlayerColor] = useState<'w' | 'b' | null>(null);
+  const [isMyTurn, setIsMyTurn] = useState(false);
 
   const updateGameState = useCallback((currentGame: Chess) => {
     setBoard(currentGame.board());
     updateCapturedPieces(currentGame);
     checkGameOver(currentGame);
-  }, []);
-  
-  // This is a placeholder for real-time synchronization
+    setIsMyTurn(playerColor === currentGame.turn());
+  }, [playerColor]);
+
   useEffect(() => {
-    console.log(`Joined game ${gameId}`);
-    // For now, let's just log the game ID.
-    // The first player to join will be white.
-    // In a real implementation, this would involve checking game state on a server.
-    if (!localStorage.getItem(`chess-game-${gameId}`)) {
-      localStorage.setItem(`chess-game-${gameId}`, 'w');
-      setPlayerColor('w');
-    } else if (localStorage.getItem(`chess-game-${gameId}`) === 'w') {
-      setPlayerColor('b');
+    if (gameId) {
+      joinFirebaseGame(gameId).then(color => {
+        setPlayerColor(color);
+      });
+
+      const unsubscribe = subscribeToGame(gameId, (gameData) => {
+        if (gameData && gameData.fen) {
+          const newGame = new Chess(gameData.fen);
+          setGame(newGame);
+          updateGameState(newGame);
+        }
+      });
+      return () => unsubscribe();
     }
-  }, [gameId]);
+  }, [gameId, updateGameState]);
+
 
   const updateCapturedPieces = useCallback((currentGame: Chess) => {
     const newCaptured = { w: [], b: [] };
@@ -86,23 +93,22 @@ export function ChessGame({ gameId }: { gameId: string }) {
       }
     });
     
-    // Sort pieces by value
     const pieceValue = { p: 1, n: 3, b: 3, r: 5, q: 9 };
     newCaptured.w.sort((a, b) => pieceValue[a.type] - pieceValue[b.type]);
     newCaptured.b.sort((a, b) => pieceValue[a.type] - pieceValue[b.type]);
 
-
     setCapturedPieces(newCaptured);
   }, []);
 
-  const resetGame = useCallback(() => {
+  const resetGame = useCallback(async () => {
     const newGame = new Chess();
     setGame(newGame);
     updateGameState(newGame);
     setSelectedSquare(null);
     setLegalMoves([]);
     setGameOver({ isGameOver: false, message: "" });
-  }, [updateGameState]);
+    await updateGame(gameId, newGame);
+  }, [updateGameState, gameId]);
 
   const checkGameOver = useCallback((currentGame: Chess) => {
     if (currentGame.isGameOver()) {
@@ -125,8 +131,8 @@ export function ChessGame({ gameId }: { gameId: string }) {
   }, []);
 
   const handleMove = useCallback(
-    (from: Square, to: Square) => {
-      if (from === to) return;
+    async (from: Square, to: Square) => {
+      if (from === to || !isMyTurn) return;
       
       const newGame = new Chess(game.fen());
       const moveResult = newGame.move({ from, to, promotion: "q" });
@@ -134,17 +140,18 @@ export function ChessGame({ gameId }: { gameId: string }) {
       if (moveResult) {
         setGame(newGame);
         updateGameState(newGame);
+        await updateGame(gameId, newGame);
       }
       
       setSelectedSquare(null);
       setLegalMoves([]);
     },
-    [game, updateGameState]
+    [game, updateGameState, gameId, isMyTurn]
   );
 
   const handleSquareClick = useCallback(
     (square: Square) => {
-      if (gameOver.isGameOver) return;
+      if (gameOver.isGameOver || !isMyTurn) return;
 
       const piece = game.get(square);
 
@@ -167,16 +174,17 @@ export function ChessGame({ gameId }: { gameId: string }) {
         }
       }
     },
-    [game, selectedSquare, legalMoves, handleMove, gameOver.isGameOver]
+    [game, selectedSquare, legalMoves, handleMove, gameOver.isGameOver, isMyTurn]
   );
 
-  const undoMove = useCallback(() => {
+  const undoMove = useCallback(async () => {
     if (gameOver.isGameOver) return;
     const newGame = new Chess(game.fen());
     newGame.undo();
     setGame(newGame);
     updateGameState(newGame);
-  }, [game, updateGameState, gameOver.isGameOver]);
+    await updateGame(gameId, newGame);
+  }, [game, updateGameState, gameOver.isGameOver, gameId]);
 
   const turn = game.turn();
   const isCheck = game.isCheck();
@@ -233,7 +241,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
             )}
           </div>
           <div className="absolute right-0 flex gap-2">
-            <Button onClick={undoMove} disabled={history.length === 0} variant="secondary" className="rounded-full shadow-sm">
+            <Button onClick={undoMove} disabled={history.length < 2} variant="secondary" className="rounded-full shadow-sm">
               <Undo2 />
             </Button>
           </div>
@@ -248,6 +256,10 @@ export function ChessGame({ gameId }: { gameId: string }) {
         <div className="flex w-full flex-col gap-2">
            <CapturedPiecesDisplay pieces={capturedPieces.b} player="Black" />
            <CapturedPiecesDisplay pieces={capturedPieces.w} player="White" />
+        </div>
+        <div className="text-center text-sm text-muted-foreground mt-2">
+          {playerColor ? `You are playing as ${playerColor === 'w' ? 'White' : 'Black'}.` : 'Joining game...'}
+          {isMyTurn ? " It's your turn." : " Waiting for opponent."}
         </div>
       </div>
       <AlertDialog open={gameOver.isGameOver} onOpenChange={(open) => !open && resetGame()}>
