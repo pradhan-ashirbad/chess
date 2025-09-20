@@ -178,7 +178,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
   );
 
   const undoMove = useCallback(async () => {
-    if (gameOver.isGameOver) return;
+    if (gameOver.isGameOver || history.length === 0) return;
     const newGame = new Chess(game.fen());
     newGame.undo();
     setGame(newGame);
@@ -241,7 +241,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
             )}
           </div>
           <div className="absolute right-0 flex gap-2">
-            <Button onClick={undoMove} disabled={history.length < 2} variant="secondary" className="rounded-full shadow-sm">
+            <Button onClick={undoMove} disabled={history.length < 1} variant="secondary" className="rounded-full shadow-sm">
               <Undo2 />
             </Button>
           </div>
@@ -259,7 +259,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
         </div>
         <div className="text-center text-sm text-muted-foreground mt-2">
           {playerColor ? `You are playing as ${playerColor === 'w' ? 'White' : 'Black'}.` : 'Joining game...'}
-          {isMyTurn ? " It's your turn." : " Waiting for opponent."}
+          {playerColor && (isMyTurn ? " It's your turn." : " Waiting for opponent.")}
         </div>
       </div>
       <AlertDialog open={gameOver.isGameOver} onOpenChange={(open) => !open && resetGame()}>
