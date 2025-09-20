@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { Chess } from "chess.js";
-import type { Square, Move, Piece } from "chess.js";
+import type { Square, Move, Piece, PieceSymbol } from "chess.js";
 import { ChessBoard } from "@/components/chess/chess-board";
 import {
   AlertDialog,
@@ -17,7 +17,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Undo2 } from "lucide-react";
 import { ChessPiece } from "./chess-piece";
-import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame } from "@/lib/firebase";
+import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame as createFirebaseGame } from "@/lib/firebase";
+import { PromotionDialog } from "./promotion-dialog";
 
 export function ChessGame({ gameId }: { gameId: string }) {
   const [game, setGame] = useState(new Chess());
@@ -32,7 +33,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
   const [playerColor, setPlayerColor] = useState<'w' | 'b' | 'spectator' | null>(null);
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [lastMove, setLastMove] = useState<{ from: Square, to: Square } | null>(null);
-
+  const [promotionMove, setPromotionMove] = useState<{ from: Square; to: Square; } | null>(null);
 
   const updateGameState = useCallback((currentGame: Chess) => {
     setBoard(currentGame.board());
@@ -54,9 +55,8 @@ export function ChessGame({ gameId }: { gameId: string }) {
           updateGameState(newGame);
           setLastMove(gameData.lastMove || null);
         } else if (!gameData) {
-          // If no game data is found, it might be a new game. Create it.
           const newGame = new Chess();
-          createNewGame(gameId, newGame);
+          createFirebaseGame(gameId, newGame);
         }
       });
       return () => unsubscribe();
@@ -109,7 +109,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
 
   const resetGame = useCallback(async () => {
     const newGame = new Chess();
-    await createNewGame(gameId, newGame);
+    await createFirebaseGame(gameId, newGame);
     // Game state will be updated via Firestore subscription
   }, [gameId]);
 
@@ -140,7 +140,10 @@ export function ChessGame({ gameId }: { gameId: string }) {
       if (from === to || !isMyTurn) return;
       
       const newGame = new Chess(game.fen());
-      const moveResult = newGame.move({ from, to, promotion: "q" });
+      
+      const move = legalMoves.find(m => m.from === from && m.to === to);
+      
+      const moveResult = newGame.move({ from, to });
 
       if (moveResult) {
         await updateGame(gameId, newGame);
@@ -149,8 +152,21 @@ export function ChessGame({ gameId }: { gameId: string }) {
       setSelectedSquare(null);
       setLegalMoves([]);
     },
-    [game, gameId, isMyTurn]
+    [game, gameId, isMyTurn, legalMoves]
   );
+  
+  const handlePromotion = async (piece: PieceSymbol) => {
+    if (!promotionMove) return;
+    const { from, to } = promotionMove;
+    const newGame = new Chess(game.fen());
+    const moveResult = newGame.move({ from, to, promotion: piece });
+    if (moveResult) {
+        await updateGame(gameId, newGame);
+    }
+    setPromotionMove(null);
+    setSelectedSquare(null);
+    setLegalMoves([]);
+  }
 
   const handleSquareClick = useCallback(
     (square: Square) => {
@@ -159,7 +175,18 @@ export function ChessGame({ gameId }: { gameId: string }) {
       const piece = game.get(square);
 
       if (selectedSquare) {
-        if (legalMoves.some((move) => move.to === square)) {
+        const move = legalMoves.find(m => m.from === selectedSquare && m.to === square);
+        if (move) {
+          // Check for promotion
+          const piece = game.get(selectedSquare);
+          if (
+            piece?.type === "p" &&
+            ((piece.color === "w" && selectedSquare[1] === "7" && square[1] === "8") ||
+             (piece.color === "b" && selectedSquare[1] === "2" && square[1] === "1"))
+          ) {
+            setPromotionMove({ from: selectedSquare, to: square });
+            return;
+          }
           handleMove(selectedSquare, square);
         } else {
           if (piece && piece.color === game.turn()) {
@@ -181,12 +208,13 @@ export function ChessGame({ gameId }: { gameId: string }) {
   );
 
   const undoMove = useCallback(async () => {
-    const newGame = new Chess(game.fen());
-    const lastMove = newGame.undo();
+    if (game.history().length === 0) return;
     
-    if (lastMove) {
-      await updateGame(gameId, newGame);
-    }
+    const newGame = new Chess(game.fen());
+    newGame.undo();
+    
+    await updateGame(gameId, newGame);
+    
   }, [game, gameId]);
 
   const turn = game.turn();
@@ -254,7 +282,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
             )}
           </div>
           <div className="absolute right-0 flex gap-2">
-            <Button onClick={undoMove} disabled={history.length < 1 || playerColor === 'spectator'} variant="secondary" className="rounded-full shadow-sm">
+            <Button onClick={undoMove} disabled={history.length === 0 || playerColor === 'spectator'} variant="secondary" className="rounded-full shadow-sm">
               <Undo2 />
             </Button>
           </div>
@@ -262,7 +290,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
         <ChessBoard
           board={board}
           onSquareClick={handleSquareClick}
-          onPieceDrop={handleMove}
+          onPieceDrop={(from, to) => handleMove(from, to)}
           selectedSquare={selectedSquare}
           legalMoves={legalMoves.map((move) => move.to)}
           lastMove={lastMove}
@@ -286,6 +314,11 @@ export function ChessGame({ gameId }: { gameId: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <PromotionDialog
+        isOpen={!!promotionMove}
+        color={game.turn()}
+        onSelect={handlePromotion}
+      />
     </>
   );
 }
