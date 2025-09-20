@@ -26,7 +26,6 @@ export function ChessGame({ gameId }: { gameId: string }) {
   const [game, setGame] = useState(new Chess());
   const [board, setBoard] = useState(game.board());
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
-  const [legalMoves, setLegalMoves] = useState<Move[]>([]);
   const [gameOver, setGameOver] = useState({ isGameOver: false, message: "" });
   const [capturedPieces, setCapturedPieces] = useState<{
     w: Piece[];
@@ -121,31 +120,21 @@ export function ChessGame({ gameId }: { gameId: string }) {
     if (gameId) {
       joinFirebaseGame(gameId).then(color => {
         setPlayerColor(color);
-        // Initial sync
-        getDoc(getGameRef(gameId)).then(docSnap => {
-          if (docSnap.exists()) {
-            const gameData = docSnap.data();
+        
+        unsubscribe = subscribeToGame(gameId, (gameData) => {
+          if (gameData && gameData.fen) {
             const newGame = new Chess(gameData.fen);
             setGame(newGame);
+            // After setting player color, we can update the game state
+            // which also determines if it's the current player's turn.
             updateGameState(newGame, color);
           } else {
+            // If the game doesn't exist, create it.
             createFirebaseGame(gameId).then(() => {
                updateGameState(new Chess(), color);
             })
           }
         });
-      });
-
-      unsubscribe = subscribeToGame(gameId, (gameData) => {
-        if (gameData && gameData.fen) {
-          const newGame = new Chess(gameData.fen);
-          setGame(newGame);
-          // We need to know the player color to correctly set `isMyTurn`
-          setPlayerColor(prevColor => {
-            updateGameState(newGame, prevColor);
-            return prevColor;
-          });
-        }
       });
     }
 
@@ -177,7 +166,6 @@ export function ChessGame({ gameId }: { gameId: string }) {
       }
       
       setSelectedSquare(null);
-      setLegalMoves([]);
     },
     [game, gameId, playerColor]
   );
@@ -193,12 +181,20 @@ export function ChessGame({ gameId }: { gameId: string }) {
     (square: Square) => {
       const pieceOnSquare = game.get(square);
 
+      // Disallow moves if game is over or player is a spectator
       if (gameOver.isGameOver || playerColor === 'spectator') return;
 
+      // Disallow moves if it's not the player's turn
+      if (playerColor !== game.turn()) return;
+
       if (selectedSquare) {
-        const move = game.moves({ square: selectedSquare, verbose: true }).find(m => m.to === square);
-        if (move && pieceOnSquare?.color !== game.turn()) {
+        // Attempt to make a move from selectedSquare to the clicked square
+        const legalMovesForPiece = game.moves({ square: selectedSquare, verbose: true });
+        const move = legalMovesForPiece.find(m => m.to === square);
+
+        if (move) {
           const piece = game.get(selectedSquare);
+          // Check for promotion
           if (
             piece?.type === "p" &&
             ((piece.color === "w" && selectedSquare[1] === "7" && square[1] === "8") ||
@@ -209,18 +205,17 @@ export function ChessGame({ gameId }: { gameId: string }) {
           }
           handleMove(selectedSquare, square);
         } else {
+          // If the clicked square is not a legal move, check if it's another of the player's pieces
           if (pieceOnSquare && pieceOnSquare.color === game.turn()) {
             setSelectedSquare(square);
-            setLegalMoves(game.moves({ square, verbose: true }));
           } else {
             setSelectedSquare(null);
-            setLegalMoves([]);
           }
         }
       } else {
+        // If no square is selected, select the clicked square if it contains one of the player's pieces
         if (pieceOnSquare && pieceOnSquare.color === game.turn()) {
           setSelectedSquare(square);
-          setLegalMoves(game.moves({ square, verbose: true }));
         }
       }
     },
@@ -229,6 +224,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
   
   const undoMove = useCallback(async () => {
     if (playerColor === 'spectator') return;
+    // Allow undo only if at least one move for each side has been made
     if (game.history().length < 2) return;
 
     const newGame = new Chess(game.fen());
@@ -242,6 +238,10 @@ export function ChessGame({ gameId }: { gameId: string }) {
   const turn = game.turn();
   const isCheck = game.isCheck();
   const history = game.history();
+
+  const legalMovesForSelectedPiece = selectedSquare
+    ? game.moves({ square: selectedSquare, verbose: true }).map((move) => move.to)
+    : [];
 
   const CapturedPiecesDisplay = ({
     pieces,
@@ -314,7 +314,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
           onSquareClick={handleSquareClick}
           onPieceDrop={(from, to) => handleMove(from, to)}
           selectedSquare={selectedSquare}
-          legalMoves={game.moves({ square: selectedSquare, verbose: true }).map((move) => move.to)}
+          legalMoves={legalMovesForSelectedPiece}
           lastMove={lastMove}
         />
         <div className="flex w-full flex-col gap-2">
