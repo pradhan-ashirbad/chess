@@ -30,7 +30,13 @@ export const subscribeToGame = (gameId: string, onUpdate: (gameData: any) => voi
 
 export const updateGame = async (gameId: string, game: Chess) => {
     const gameRef = getGameRef(gameId);
-    await updateDoc(gameRef, { fen: game.fen() });
+    const lastMove = game.history({verbose: true}).pop();
+    if (!lastMove) return;
+
+    await updateDoc(gameRef, { 
+        fen: game.fen(),
+        lastMove: { from: lastMove.from, to: lastMove.to }
+    });
 }
 
 export const joinGame = async (gameId: string): Promise<'w' | 'b' | 'spectator'> => {
@@ -38,30 +44,27 @@ export const joinGame = async (gameId: string): Promise<'w' | 'b' | 'spectator'>
   const docSnap = await getDoc(gameRef);
 
   if (!docSnap.exists()) {
-    console.log("No such document! Creating new game.");
+    // This case should ideally not be hit if createNewGame is awaited, but is good for robustness
     await createNewGame(gameId, new Chess());
-    // After creating, try joining again. This recursive call should be safe.
-    return joinGame(gameId);
+    await updateDoc(gameRef, { white: 'player1' });
+    return 'w';
   }
   
   const gameData = docSnap.data();
   // Using simple IDs for now. In a real app, use Firebase Auth UIDs.
-  const player1Id = 'player1'; 
-  const player2Id = 'player2';
+  const tempUserId = localStorage.getItem('chessUserId') || `user_${Date.now()}`;
+  localStorage.setItem('chessUserId', tempUserId);
 
-  // This logic is simplified and assumes the first user to join is player1
-  if (gameData.white === player1Id) return 'w';
-  if (gameData.black === player1Id) return 'b';
-  if (gameData.white === player2Id) return 'w'; // If user refreshes as player2
-  if (gameData.black === player2Id) return 'b';
+
+  if (gameData.white === tempUserId) return 'w';
+  if (gameData.black === tempUserId) return 'b';
 
 
   if (!gameData.white) {
-    await updateDoc(gameRef, { white: player1Id });
+    await updateDoc(gameRef, { white: tempUserId });
     return 'w';
   } else if (!gameData.black) {
-    // A different user joins as black
-    await updateDoc(gameRef, { black: player2Id });
+    await updateDoc(gameRef, { black: tempUserId });
     return 'b';
   }
   

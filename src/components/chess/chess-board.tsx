@@ -11,6 +11,7 @@ interface ChessBoardProps {
   onPieceDrop: (from: Square, to: Square) => void;
   selectedSquare: Square | null;
   legalMoves: Square[];
+  lastMove: { from: Square, to: Square } | null;
 }
 
 export function ChessBoard({
@@ -19,6 +20,7 @@ export function ChessBoard({
   onPieceDrop,
   selectedSquare,
   legalMoves,
+  lastMove,
 }: ChessBoardProps) {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>, to: Square) => {
     e.preventDefault();
@@ -41,6 +43,7 @@ export function ChessBoard({
           const file = i % 8;
           const square = `${files[file]}${ranks[rank]}` as Square;
           const isLight = (rank + file) % 2 !== 0;
+          const isLastMove = lastMove?.from === square || lastMove?.to === square;
 
           return (
             <div
@@ -55,6 +58,7 @@ export function ChessBoard({
                 piece={piece}
                 isSelected={selectedSquare === square}
                 isLegalMove={legalMoves.includes(square)}
+                isLastMove={isLastMove}
                 onClick={() => onSquareClick(square)}
               />
             </div>

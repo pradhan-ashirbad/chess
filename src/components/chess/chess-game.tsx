@@ -31,6 +31,8 @@ export function ChessGame({ gameId }: { gameId: string }) {
   }>({ w: [], b: [] });
   const [playerColor, setPlayerColor] = useState<'w' | 'b' | 'spectator' | null>(null);
   const [isMyTurn, setIsMyTurn] = useState(false);
+  const [lastMove, setLastMove] = useState<{ from: Square, to: Square } | null>(null);
+
 
   const updateGameState = useCallback((currentGame: Chess) => {
     setBoard(currentGame.board());
@@ -50,6 +52,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
           const newGame = new Chess(gameData.fen);
           setGame(newGame);
           updateGameState(newGame);
+          setLastMove(gameData.lastMove || null);
         } else if (!gameData) {
           // If no game data is found, it might be a new game. Create it.
           const newGame = new Chess();
@@ -251,7 +254,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
             )}
           </div>
           <div className="absolute right-0 flex gap-2">
-            <Button onClick={undoMove} disabled={history.length < 1 || playerColor === 'spectator' || history.length < 2} variant="secondary" className="rounded-full shadow-sm">
+            <Button onClick={undoMove} disabled={history.length < 1 || playerColor === 'spectator'} variant="secondary" className="rounded-full shadow-sm">
               <Undo2 />
             </Button>
           </div>
@@ -262,6 +265,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
           onPieceDrop={handleMove}
           selectedSquare={selectedSquare}
           legalMoves={legalMoves.map((move) => move.to)}
+          lastMove={lastMove}
         />
         <div className="flex w-full flex-col gap-2">
            <CapturedPiecesDisplay pieces={capturedPieces.b} player="Black" />
