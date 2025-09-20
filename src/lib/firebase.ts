@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc } from "firebase/firestore";
-import type { Chess } from "chess.js";
+import { Chess } from "chess.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -31,7 +31,11 @@ export const subscribeToGame = (gameId: string, onUpdate: (gameData: any) => voi
 export const updateGame = async (gameId: string, game: Chess) => {
     const gameRef = getGameRef(gameId);
     const lastMove = game.history({verbose: true}).pop();
-    if (!lastMove) return;
+    if (!lastMove) {
+        // Handle case of undoing the first move
+        await updateDoc(gameRef, { fen: game.fen(), lastMove: null });
+        return;
+    };
 
     await updateDoc(gameRef, { 
         fen: game.fen(),
@@ -45,7 +49,7 @@ export const joinGame = async (gameId: string): Promise<'w' | 'b' | 'spectator'>
 
   if (!docSnap.exists()) {
     // This case should ideally not be hit if createNewGame is awaited, but is good for robustness
-    await createNewGame(gameId, new Chess());
+    await createNewGame(gameId);
     await updateDoc(gameRef, { white: 'player1' });
     return 'w';
   }
@@ -71,8 +75,9 @@ export const joinGame = async (gameId: string): Promise<'w' | 'b' | 'spectator'>
   return 'spectator';
 };
 
-export const createNewGame = async (gameId: string, game: Chess) => {
+export const createNewGame = async (gameId: string) => {
     const gameRef = getGameRef(gameId);
+    const game = new Chess();
     await setDoc(gameRef, { 
         fen: game.fen(),
         white: null,

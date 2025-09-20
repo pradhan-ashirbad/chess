@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { createNewGame as createFirebaseGame } from "@/lib/firebase";
-import { Chess } from "chess.js";
 
 export default function Home() {
   const [gameId, setGameId] = useState("");
@@ -18,9 +17,8 @@ export default function Home() {
   const handleCreateNewGame = async () => {
     try {
       const newGameId = Math.random().toString(36).substr(2, 9);
-      const newGame = new Chess();
       // Ensure the game is created before navigating
-      await createFirebaseGame(newGameId, newGame);
+      await createFirebaseGame(newGameId);
       
       const gameUrl = `${window.location.origin}/game/${newGameId}`;
       await navigator.clipboard.writeText(gameUrl);
@@ -47,6 +45,10 @@ export default function Home() {
       router.push(`/game/${gameId}`);
     }
   };
+  
+  const playSinglePlayer = () => {
+    router.push('/game');
+  }
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
@@ -59,6 +61,14 @@ export default function Home() {
             <CardTitle className="text-center text-2xl">Play Chess</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+             <Button onClick={playSinglePlayer} className="w-full" variant="secondary">
+              Play Single Player
+            </Button>
+             <div className="flex items-center gap-2">
+              <hr className="w-full" />
+              <span className="text-muted-foreground">OR</span>
+              <hr className="w-full" />
+            </div>
             <Button onClick={handleCreateNewGame} className="w-full">
               Create New Game
             </Button>

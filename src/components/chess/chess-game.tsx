@@ -20,7 +20,7 @@ import { ChessPiece } from "./chess-piece";
 import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame as createFirebaseGame } from "@/lib/firebase";
 import { PromotionDialog } from "./promotion-dialog";
 
-export function ChessGame({ gameId }: { gameId: string }) {
+export function ChessGame({ gameId }: { gameId?: string }) {
   const [game, setGame] = useState(new Chess());
   const [board, setBoard] = useState(game.board());
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
@@ -31,19 +31,32 @@ export function ChessGame({ gameId }: { gameId: string }) {
     b: Piece[];
   }>({ w: [], b: [] });
   const [playerColor, setPlayerColor] = useState<'w' | 'b' | 'spectator' | null>(null);
-  const [isMyTurn, setIsMyTurn] = useState(false);
+  const [isMyTurn, setIsMyTurn] = useState(true);
   const [lastMove, setLastMove] = useState<{ from: Square, to: Square } | null>(null);
   const [promotionMove, setPromotionMove] = useState<{ from: Square; to: Square; } | null>(null);
+
+  const isMultiplayer = !!gameId;
 
   const updateGameState = useCallback((currentGame: Chess) => {
     setBoard(currentGame.board());
     updateCapturedPieces(currentGame);
     checkGameOver(currentGame);
-    setIsMyTurn(playerColor === currentGame.turn());
-  }, [playerColor]);
+    if(isMultiplayer) {
+      setIsMyTurn(playerColor === currentGame.turn());
+    } else {
+      setIsMyTurn(true);
+    }
+    const history = currentGame.history({ verbose: true });
+    const lastMoveFromHistory = history.pop();
+    if(lastMoveFromHistory) {
+      setLastMove({from: lastMoveFromHistory.from, to: lastMoveFromHistory.to});
+    } else {
+      setLastMove(null);
+    }
+  }, [playerColor, isMultiplayer]);
 
   useEffect(() => {
-    if (gameId) {
+    if (isMultiplayer && gameId) {
       joinFirebaseGame(gameId).then(color => {
         setPlayerColor(color);
       });
@@ -55,13 +68,14 @@ export function ChessGame({ gameId }: { gameId: string }) {
           updateGameState(newGame);
           setLastMove(gameData.lastMove || null);
         } else if (!gameData) {
-          const newGame = new Chess();
-          createFirebaseGame(gameId, newGame);
+          // If the game doesn't exist, create it.
+          // This can happen due to race conditions.
+          createFirebaseGame(gameId);
         }
       });
       return () => unsubscribe();
     }
-  }, [gameId, updateGameState]);
+  }, [gameId, updateGameState, isMultiplayer]);
 
 
   const updateCapturedPieces = useCallback((currentGame: Chess) => {
@@ -109,9 +123,14 @@ export function ChessGame({ gameId }: { gameId: string }) {
 
   const resetGame = useCallback(async () => {
     const newGame = new Chess();
-    await createFirebaseGame(gameId, newGame);
-    // Game state will be updated via Firestore subscription
-  }, [gameId]);
+    if(isMultiplayer && gameId) {
+        await createFirebaseGame(gameId);
+    } else {
+        setGame(newGame);
+        updateGameState(newGame);
+        setGameOver({ isGameOver: false, message: "" });
+    }
+  }, [gameId, isMultiplayer, updateGameState]);
 
   const checkGameOver = useCallback((currentGame: Chess) => {
     if (currentGame.isGameOver()) {
@@ -136,46 +155,42 @@ export function ChessGame({ gameId }: { gameId: string }) {
   }, []);
 
   const handleMove = useCallback(
-    async (from: Square, to: Square) => {
+    async (from: Square, to: Square, promotion?: PieceSymbol) => {
       if (from === to || !isMyTurn) return;
       
       const newGame = new Chess(game.fen());
-      
-      const move = legalMoves.find(m => m.from === from && m.to === to);
-      
-      const moveResult = newGame.move({ from, to });
+      const moveResult = newGame.move({ from, to, promotion });
 
       if (moveResult) {
-        await updateGame(gameId, newGame);
+        if (isMultiplayer && gameId) {
+            await updateGame(gameId, newGame);
+        } else {
+            setGame(newGame);
+            updateGameState(newGame);
+        }
       }
       
       setSelectedSquare(null);
       setLegalMoves([]);
     },
-    [game, gameId, isMyTurn, legalMoves]
+    [game, gameId, isMyTurn, isMultiplayer, updateGameState]
   );
   
   const handlePromotion = async (piece: PieceSymbol) => {
     if (!promotionMove) return;
     const { from, to } = promotionMove;
-    const newGame = new Chess(game.fen());
-    const moveResult = newGame.move({ from, to, promotion: piece });
-    if (moveResult) {
-        await updateGame(gameId, newGame);
-    }
+    await handleMove(from, to, piece);
     setPromotionMove(null);
-    setSelectedSquare(null);
-    setLegalMoves([]);
   }
 
   const handleSquareClick = useCallback(
     (square: Square) => {
       if (gameOver.isGameOver || !isMyTurn) return;
 
-      const piece = game.get(square);
+      const pieceOnSquare = game.get(square);
 
       if (selectedSquare) {
-        const move = legalMoves.find(m => m.from === selectedSquare && m.to === square);
+        const move = game.moves({ square: selectedSquare, verbose: true }).find(m => m.to === square);
         if (move) {
           // Check for promotion
           const piece = game.get(selectedSquare);
@@ -189,7 +204,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
           }
           handleMove(selectedSquare, square);
         } else {
-          if (piece && piece.color === game.turn()) {
+          if (pieceOnSquare && (isMultiplayer ? pieceOnSquare.color === game.turn() : true)) {
             setSelectedSquare(square);
             setLegalMoves(game.moves({ square, verbose: true }));
           } else {
@@ -198,13 +213,13 @@ export function ChessGame({ gameId }: { gameId: string }) {
           }
         }
       } else {
-        if (piece && piece.color === game.turn()) {
+        if (pieceOnSquare && (isMultiplayer ? pieceOnSquare.color === game.turn() : true)) {
           setSelectedSquare(square);
           setLegalMoves(game.moves({ square, verbose: true }));
         }
       }
     },
-    [game, selectedSquare, legalMoves, handleMove, gameOver.isGameOver, isMyTurn]
+    [game, selectedSquare, handleMove, gameOver.isGameOver, isMyTurn, isMultiplayer]
   );
 
   const undoMove = useCallback(async () => {
@@ -213,9 +228,16 @@ export function ChessGame({ gameId }: { gameId: string }) {
     const newGame = new Chess(game.fen());
     newGame.undo();
     
-    await updateGame(gameId, newGame);
+    if (isMultiplayer && gameId) {
+        if(game.history().length >= 1) {
+            await updateGame(gameId, newGame);
+        }
+    } else {
+        setGame(newGame);
+        updateGameState(newGame);
+    }
     
-  }, [game, gameId]);
+  }, [game, gameId, isMultiplayer, updateGameState]);
 
   const turn = game.turn();
   const isCheck = game.isCheck();
@@ -249,6 +271,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
   );
   
   const getPlayerMessage = () => {
+    if (!isMultiplayer) return 'You are playing a local game.';
     if (playerColor === 'spectator') return 'You are spectating.';
     if (playerColor) {
       const color = playerColor === 'w' ? 'White' : 'Black';
@@ -282,7 +305,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
             )}
           </div>
           <div className="absolute right-0 flex gap-2">
-            <Button onClick={undoMove} disabled={history.length === 0 || playerColor === 'spectator'} variant="secondary" className="rounded-full shadow-sm">
+            <Button onClick={undoMove} disabled={history.length === 0} variant="secondary" className="rounded-full shadow-sm">
               <Undo2 />
             </Button>
           </div>
@@ -292,7 +315,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
           onSquareClick={handleSquareClick}
           onPieceDrop={(from, to) => handleMove(from, to)}
           selectedSquare={selectedSquare}
-          legalMoves={legalMoves.map((move) => move.to)}
+          legalMoves={game.moves({ square: selectedSquare, verbose: true }).map((move) => move.to)}
           lastMove={lastMove}
         />
         <div className="flex w-full flex-col gap-2">
