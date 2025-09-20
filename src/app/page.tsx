@@ -19,6 +19,7 @@ export default function Home() {
     try {
       const newGameId = Math.random().toString(36).substr(2, 9);
       const newGame = new Chess();
+      // Ensure the game is created before navigating
       await createFirebaseGame(newGameId, newGame);
       
       const gameUrl = `${window.location.origin}/game/${newGameId}`;
