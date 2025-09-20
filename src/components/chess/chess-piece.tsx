@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 
 interface ChessPieceProps {
   piece: Piece;
-  onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;
+  isCaptured?: boolean;
 }
 
 const pieceComponents = {
@@ -21,21 +22,24 @@ const pieceComponents = {
   k: { w: WhiteKing, b: BlackKing },
 };
 
-export function ChessPiece({ piece, onDragStart }: ChessPieceProps) {
+export function ChessPiece({ piece, onDragStart, isCaptured = false }: ChessPieceProps) {
   const PieceComponent = pieceComponents[piece.type][piece.color];
 
   if (!PieceComponent) return null;
 
   return (
     <div
-      draggable
+      draggable={!isCaptured}
       onDragStart={onDragStart}
-      className="h-full w-full cursor-grab active:cursor-grabbing"
+      className={cn(
+        "h-full w-full",
+        !isCaptured && "cursor-grab active:cursor-grabbing"
+      )}
     >
       <PieceComponent
         className={cn(
-          "h-full w-full transition-transform duration-100 ease-in-out hover:scale-110",
-          "drop-shadow-[0_2px_2px_rgba(0,0,0,0.4)]"
+          "h-full w-full",
+          !isCaptured && "transition-transform duration-100 ease-in-out hover:scale-110 drop-shadow-[0_2px_2px_rgba(0,0,0,0.4)]"
         )}
       />
     </div>
