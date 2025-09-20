@@ -150,8 +150,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
 
   const handleMove = useCallback(
     async (from: Square, to: Square, promotion?: PieceSymbol) => {
-      const currentTurn = game.turn();
-      if (from === to || (playerColor !== 'spectator' && currentTurn !== playerColor)) return;
+      if (game.turn() !== playerColor && playerColor !== 'spectator') return;
       
       const newGame = new Chess(game.fen());
       const moveResult = newGame.move({ from, to, promotion });
@@ -177,8 +176,6 @@ export function ChessGame({ gameId }: { gameId: string }) {
       const pieceOnSquare = game.get(square);
 
       if (gameOver.isGameOver || playerColor === 'spectator') return;
-
-      if (playerColor !== game.turn()) return;
 
       if (selectedSquare) {
         const legalMovesForPiece = game.moves({ square: selectedSquare, verbose: true });
@@ -299,6 +296,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
         </div>
         <ChessBoard
           board={board}
+          playerColor={playerColor}
           onSquareClick={handleSquareClick}
           onPieceDrop={(from, to) => handleMove(from, to)}
           selectedSquare={selectedSquare}
