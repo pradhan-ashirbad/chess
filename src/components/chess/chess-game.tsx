@@ -102,12 +102,12 @@ export function ChessGame({ gameId }: { gameId?: string }) {
     }
   }, []);
 
-  const updateGameState = useCallback((currentGame: Chess) => {
+  const updateGameState = useCallback((currentGame: Chess, currentColor: typeof playerColor) => {
     setBoard(currentGame.board());
     updateCapturedPieces(currentGame);
     checkGameOver(currentGame);
     if(isMultiplayer) {
-      setIsMyTurn(playerColor === currentGame.turn());
+      setIsMyTurn(currentColor === currentGame.turn());
     } else {
       setIsMyTurn(true);
     }
@@ -118,27 +118,47 @@ export function ChessGame({ gameId }: { gameId?: string }) {
     } else {
       setLastMove(null);
     }
-  }, [playerColor, isMultiplayer, updateCapturedPieces, checkGameOver]);
+  }, [isMultiplayer, updateCapturedPieces, checkGameOver]);
 
   useEffect(() => {
+    let unsubscribe: () => void;
     if (isMultiplayer && gameId) {
       joinFirebaseGame(gameId).then(color => {
         setPlayerColor(color);
+        // Initial sync
+        getDoc(getGameRef(gameId)).then(docSnap => {
+          if (docSnap.exists()) {
+            const gameData = docSnap.data();
+            const newGame = new Chess(gameData.fen);
+            setGame(newGame);
+            updateGameState(newGame, color);
+          }
+        });
       });
 
-      const unsubscribe = subscribeToGame(gameId, (gameData) => {
+      unsubscribe = subscribeToGame(gameId, (gameData) => {
         if (gameData && gameData.fen) {
           const newGame = new Chess(gameData.fen);
           setGame(newGame);
-          updateGameState(newGame);
+          // We need to know the player color to correctly set `isMyTurn`
+          setPlayerColor(prevColor => {
+            updateGameState(newGame, prevColor);
+            return prevColor;
+          });
           setLastMove(gameData.lastMove || null);
         } else if (!gameData) {
           createFirebaseGame(gameId);
         }
       });
-      return () => unsubscribe();
     }
-  }, [gameId, updateGameState, isMultiplayer]);
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [gameId, isMultiplayer, updateGameState]);
+
 
   const resetGame = useCallback(async () => {
     const newGame = new Chess();
@@ -146,10 +166,10 @@ export function ChessGame({ gameId }: { gameId?: string }) {
         await createFirebaseGame(gameId);
     } else {
         setGame(newGame);
-        updateGameState(newGame);
+        updateGameState(newGame, playerColor);
         setGameOver({ isGameOver: false, message: "" });
     }
-  }, [gameId, isMultiplayer, updateGameState]);
+  }, [gameId, isMultiplayer, updateGameState, playerColor]);
 
 
   const handleMove = useCallback(
@@ -165,7 +185,7 @@ export function ChessGame({ gameId }: { gameId?: string }) {
             await updateGame(gameId, newGame);
         } else {
             setGame(newGame);
-            updateGameState(newGame);
+            updateGameState(newGame, playerColor);
         }
       }
       
@@ -187,8 +207,12 @@ export function ChessGame({ gameId }: { gameId?: string }) {
       const pieceOnSquare = game.get(square);
 
       if (gameOver.isGameOver) return;
-      if (isMultiplayer && playerColor !== game.turn()) return;
+      
+      // In multiplayer, spectators can't move.
+      if (isMultiplayer && playerColor === 'spectator') return;
 
+      // Check if it's the current player's turn (works for both single and multi-player)
+      if (pieceOnSquare?.color !== game.turn() && !selectedSquare) return;
 
       if (selectedSquare) {
         const move = game.moves({ square: selectedSquare, verbose: true }).find(m => m.to === square);
@@ -223,21 +247,24 @@ export function ChessGame({ gameId }: { gameId?: string }) {
   );
 
   const undoMove = useCallback(async () => {
-    if (game.history().length === 0 || playerColor === 'spectator') return;
-    
+    if (playerColor === 'spectator') return;
+    if (game.history().length === 0) return;
+
     const newGame = new Chess(game.fen());
     newGame.undo();
     
     if (isMultiplayer && gameId) {
-        if(game.history().length >= 1) {
-            await updateGame(gameId, newGame);
-        }
+      // In multiplayer, a full undo might be complex. A simple implementation
+      // is to only allow undoing the very last move.
+      // Let's just update to the previous state.
+      await updateGame(gameId, newGame);
     } else {
+        // Single player undo
         setGame(newGame);
-        updateGameState(newGame);
+        updateGameState(newGame, playerColor);
     }
     
-  }, [game, gameId, isMultiplayer, updateGameState, playerColor, isMyTurn]);
+  }, [game, gameId, isMultiplayer, updateGameState, playerColor]);
 
   const turn = game.turn();
   const isCheck = game.isCheck();
@@ -305,7 +332,7 @@ export function ChessGame({ gameId }: { gameId?: string }) {
             )}
           </div>
           <div className="absolute right-0 flex gap-2">
-            <Button onClick={undoMove} disabled={history.length < 2 || playerColor === 'spectator' } variant="secondary" className="rounded-full shadow-sm">
+            <Button onClick={undoMove} disabled={history.length === 0 || playerColor === 'spectator'} variant="secondary" className="rounded-full shadow-sm">
               <Undo2 />
             </Button>
           </div>
@@ -345,3 +372,5 @@ export function ChessGame({ gameId }: { gameId?: string }) {
     </>
   );
 }
+
+    

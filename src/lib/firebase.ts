@@ -31,26 +31,28 @@ export const subscribeToGame = (gameId: string, onUpdate: (gameData: any) => voi
 export const updateGame = async (gameId: string, game: Chess) => {
     const gameRef = getGameRef(gameId);
     const lastMove = game.history({verbose: true}).pop();
-    if (!lastMove) {
-        // Handle case of undoing the first move
-        await updateDoc(gameRef, { fen: game.fen(), lastMove: null });
-        return;
+    
+    const updateData: { fen: string; lastMove: { from: string; to: string } | null } = {
+        fen: game.fen(),
+        lastMove: null
     };
 
-    await updateDoc(gameRef, { 
-        fen: game.fen(),
-        lastMove: { from: lastMove.from, to: lastMove.to }
-    });
+    if (lastMove) {
+        updateData.lastMove = { from: lastMove.from, to: lastMove.to };
+    }
+
+    await updateDoc(gameRef, updateData);
 }
 
-export const joinGame = async (gameId: string): Promise<'w' | 'b' | 'spectator'> => {
+export const joinGame = async (gameId:string): Promise<'w' | 'b' | 'spectator'> => {
   const gameRef = getGameRef(gameId);
   const docSnap = await getDoc(gameRef);
 
   if (!docSnap.exists()) {
-    // This case should ideally not be hit if createNewGame is awaited, but is good for robustness
+    // This function assumes the game document exists. 
+    // It should be created before calling join.
+    // However, as a fallback, we can create it.
     await createNewGame(gameId);
-    await updateDoc(gameRef, { white: 'player1' });
     return 'w';
   }
   
@@ -58,7 +60,6 @@ export const joinGame = async (gameId: string): Promise<'w' | 'b' | 'spectator'>
   // Using simple IDs for now. In a real app, use Firebase Auth UIDs.
   const tempUserId = localStorage.getItem('chessUserId') || `user_${Date.now()}`;
   localStorage.setItem('chessUserId', tempUserId);
-
 
   if (gameData.white === tempUserId) return 'w';
   if (gameData.black === tempUserId) return 'b';
@@ -85,3 +86,5 @@ export const createNewGame = async (gameId: string) => {
         createdAt: new Date(),
     });
 };
+
+    
