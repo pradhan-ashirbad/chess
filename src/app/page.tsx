@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { createNewGame as createFirebaseGame } from "@/lib/firebase";
+import { WhiteKnight } from "@/lib/chess-pieces";
 
 export default function Home() {
   const [gameId, setGameId] = useState("");
@@ -49,9 +50,12 @@ export default function Home() {
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
       <div className="flex flex-col items-center justify-center">
-        <h1 className="mb-8 text-center font-headline text-4xl font-bold tracking-tight text-foreground/90 sm:text-5xl md:text-6xl">
-          Web Chess Arena
-        </h1>
+        <div className="flex items-center justify-center gap-4 mb-8">
+          <WhiteKnight className="h-12 w-12 sm:h-16 sm:w-16" />
+          <h1 className="text-center font-headline text-4xl font-bold tracking-tight text-foreground/90 sm:text-5xl md:text-6xl">
+            Web Chess Arena
+          </h1>
+        </div>
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-center text-2xl">Play Chess</CardTitle>
