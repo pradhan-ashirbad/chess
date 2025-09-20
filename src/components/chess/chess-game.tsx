@@ -28,8 +28,10 @@ export function ChessGame() {
     b: Piece[];
   }>({ w: [], b: [] });
 
-  const updateBoard = useCallback((currentGame: Chess) => {
+  const updateGameState = useCallback((currentGame: Chess) => {
     setBoard(currentGame.board());
+    updateCapturedPieces(currentGame);
+    checkGameOver(currentGame);
   }, []);
 
   const updateCapturedPieces = useCallback((currentGame: Chess) => {
@@ -80,12 +82,11 @@ export function ChessGame() {
   const resetGame = useCallback(() => {
     const newGame = new Chess();
     setGame(newGame);
-    updateBoard(newGame);
+    updateGameState(newGame);
     setSelectedSquare(null);
     setLegalMoves([]);
     setGameOver({ isGameOver: false, message: "" });
-    updateCapturedPieces(newGame);
-  }, [updateBoard, updateCapturedPieces]);
+  }, [updateGameState]);
 
   const checkGameOver = useCallback((currentGame: Chess) => {
     if (currentGame.isGameOver()) {
@@ -111,24 +112,18 @@ export function ChessGame() {
     (from: Square, to: Square) => {
       if (from === to) return;
       
-      try {
-        const newGame = new Chess(game.fen());
-        const move = newGame.move({ from, to, promotion: "q" }); // Default promotion to Queen
+      const newGame = new Chess(game.fen());
+      const moveResult = newGame.move({ from, to, promotion: "q" });
 
-        if (move) {
-          setGame(newGame);
-          updateBoard(newGame);
-          updateCapturedPieces(newGame);
-          checkGameOver(newGame);
-        }
-      } catch (e) {
-        return;
-      } finally {
-        setSelectedSquare(null);
-        setLegalMoves([]);
+      if (moveResult) {
+        setGame(newGame);
+        updateGameState(newGame);
       }
+      
+      setSelectedSquare(null);
+      setLegalMoves([]);
     },
-    [game, updateBoard, checkGameOver, updateCapturedPieces]
+    [game, updateGameState]
   );
 
   const handleSquareClick = useCallback(
@@ -161,12 +156,14 @@ export function ChessGame() {
 
   const undoMove = useCallback(() => {
     if (gameOver.isGameOver) return;
-    const newGame = new Chess(game.fen());
-    newGame.undo();
+    const newGame = new Chess();
+    // Replay history up to the second to last move.
+    game.history({ verbose: true }).slice(0, -1).forEach(move => {
+      newGame.move(move);
+    });
     setGame(newGame);
-    updateBoard(newGame);
-    updateCapturedPieces(newGame);
-  }, [game, updateBoard, gameOver.isGameOver, updateCapturedPieces]);
+    updateGameState(newGame);
+  }, [game, updateGameState, gameOver.isGameOver]);
 
   const turn = game.turn();
   const isCheck = game.isCheck();
