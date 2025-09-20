@@ -35,7 +35,7 @@ export function ChessBoard({
 
   return (
     <div className="relative aspect-square w-full max-w-[calc(100vh-12rem)] rounded-md shadow-lg overflow-hidden">
-      <div className="grid grid-cols-8 aspect-square">
+      <div className="grid grid-cols-8 grid-rows-8 aspect-square">
         {board.flat().map((piece, i) => {
           const rank = Math.floor(i / 8);
           const file = i % 8;
