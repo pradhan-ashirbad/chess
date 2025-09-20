@@ -204,7 +204,7 @@ export function ChessGame({ gameId }: { gameId?: string }) {
           }
           handleMove(selectedSquare, square);
         } else {
-          if (pieceOnSquare && (isMultiplayer ? pieceOnSquare.color === game.turn() : true)) {
+          if (pieceOnSquare && pieceOnSquare.color === game.turn()) {
             setSelectedSquare(square);
             setLegalMoves(game.moves({ square, verbose: true }));
           } else {
@@ -213,13 +213,13 @@ export function ChessGame({ gameId }: { gameId?: string }) {
           }
         }
       } else {
-        if (pieceOnSquare && (isMultiplayer ? pieceOnSquare.color === game.turn() : true)) {
+        if (pieceOnSquare && pieceOnSquare.color === game.turn()) {
           setSelectedSquare(square);
           setLegalMoves(game.moves({ square, verbose: true }));
         }
       }
     },
-    [game, selectedSquare, handleMove, gameOver.isGameOver, isMyTurn, isMultiplayer]
+    [game, selectedSquare, handleMove, gameOver.isGameOver, isMyTurn]
   );
 
   const undoMove = useCallback(async () => {
