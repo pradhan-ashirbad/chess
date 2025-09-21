@@ -21,6 +21,7 @@ import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGam
 import { PromotionDialog } from "./promotion-dialog";
 import { useRouter } from "next/navigation";
 import { ConfirmationDialog } from "./confirmation-dialog";
+import { MoveHistory } from "./move-history";
 
 
 export function ChessGame({ gameId }: { gameId: string }) {
@@ -134,7 +135,10 @@ export function ChessGame({ gameId }: { gameId: string }) {
           }
 
           if (gameData.fen) {
-            const newGame = new Chess(gameData.fen);
+            const newGame = new Chess();
+            // The history needs to be loaded before the FEN to get the SAN strings correctly.
+            // chess.js can't generate SAN for past moves from FEN alone.
+            newGame.loadPgn(gameData.pgn || '');
             setGame(newGame);
             setLastMove(gameData.lastMove || null);
             updateGameState(newGame, color);
@@ -197,9 +201,14 @@ export function ChessGame({ gameId }: { gameId: string }) {
       
       const newGame = new Chess(game.fen());
       const moveResult = newGame.move({ from, to, promotion });
+      
+      // Need to create a new instance to update history correctly.
+      const gameWithHistory = new Chess();
+      gameWithHistory.loadPgn(game.pgn());
+      gameWithHistory.move(moveResult.san);
 
       if (moveResult) {
-        await updateGame(gameId, newGame);
+        await updateGame(gameId, gameWithHistory);
       }
       
       setSelectedSquare(null);
@@ -302,48 +311,53 @@ export function ChessGame({ gameId }: { gameId: string }) {
 
   return (
     <>
-      <div className="flex w-full flex-col items-center gap-4">
-        <div className="relative flex w-full items-center justify-center">
-          <div className="absolute left-0 flex gap-2">
-            <Button onClick={handleRequestNewGame} variant="secondary" className="rounded-full shadow-sm" disabled={playerColor === 'spectator'}>
-              <RefreshCw /> 
-            </Button>
-          </div>
-          <div className="flex items-center gap-3 rounded-full bg-card p-2 px-4 text-lg font-semibold shadow-sm">
-            <span>Turn:</span>
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-4 w-4 rounded-full ${
-                  turn === "w" ? "bg-primary" : "bg-accent"
-                } border border-foreground/20`}
-              ></span>
-              <span className="capitalize">{turn === "w" ? "White" : "Black"}</span>
+      <div className="w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <div className="md:col-span-2 flex flex-col items-center gap-4">
+          <div className="relative flex w-full items-center justify-center">
+            <div className="absolute left-0 flex gap-2">
+              <Button onClick={handleRequestNewGame} variant="secondary" className="rounded-full shadow-sm" disabled={playerColor === 'spectator'}>
+                <RefreshCw /> 
+              </Button>
             </div>
-            {isCheck && (
-              <p className="ml-2 font-bold text-destructive animate-pulse">CHECK!</p>
-            )}
+            <div className="flex items-center gap-3 rounded-full bg-card p-2 px-4 text-lg font-semibold shadow-sm">
+              <span>Turn:</span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`h-4 w-4 rounded-full ${
+                    turn === "w" ? "bg-primary" : "bg-accent"
+                  } border border-foreground/20`}
+                ></span>
+                <span className="capitalize">{turn === "w" ? "White" : "Black"}</span>
+              </div>
+              {isCheck && (
+                <p className="ml-2 font-bold text-destructive animate-pulse">CHECK!</p>
+              )}
+            </div>
+            <div className="absolute right-0 flex gap-2">
+              <Button onClick={handleRequestEndGame} disabled={playerColor === 'spectator'} variant="destructive" className="rounded-full shadow-sm">
+                <XCircle />
+              </Button>
+            </div>
           </div>
-          <div className="absolute right-0 flex gap-2">
-            <Button onClick={handleRequestEndGame} disabled={playerColor === 'spectator'} variant="destructive" className="rounded-full shadow-sm">
-              <XCircle />
-            </Button>
+          <ChessBoard
+            board={board}
+            playerColor={playerColor}
+            onSquareClick={handleSquareClick}
+            onPieceDrop={(from, to) => handleMove(from, to)}
+            selectedSquare={selectedSquare}
+            legalMoves={legalMovesForSelectedPiece}
+            lastMove={lastMove}
+          />
+          <div className="w-full flex flex-col gap-2">
+            <CapturedPiecesDisplay pieces={capturedPieces.b} player="Black" />
+            <CapturedPiecesDisplay pieces={capturedPieces.w} player="White" />
+          </div>
+          <div className="text-center text-sm text-muted-foreground mt-2">
+            {getPlayerMessage()}
           </div>
         </div>
-        <ChessBoard
-          board={board}
-          playerColor={playerColor}
-          onSquareClick={handleSquareClick}
-          onPieceDrop={(from, to) => handleMove(from, to)}
-          selectedSquare={selectedSquare}
-          legalMoves={legalMovesForSelectedPiece}
-          lastMove={lastMove}
-        />
-        <div className="flex w-full flex-col gap-2">
-           <CapturedPiecesDisplay pieces={capturedPieces.b} player="Black" />
-           <CapturedPiecesDisplay pieces={capturedPieces.w} player="White" />
-        </div>
-        <div className="text-center text-sm text-muted-foreground mt-2">
-          {getPlayerMessage()}
+        <div className="md:col-span-1">
+          <MoveHistory moves={game.history()} />
         </div>
       </div>
       <AlertDialog open={gameOver.isGameOver} onOpenChange={(open) => !open && resetGame()}>
