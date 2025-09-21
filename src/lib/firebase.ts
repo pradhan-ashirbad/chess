@@ -31,7 +31,8 @@ export const subscribeToGame = (gameId: string, onUpdate: (gameData: any) => voi
 
 export const updateGame = async (gameId: string, game: Chess) => {
     const gameRef = getGameRef(gameId);
-    const lastMove = game.history({verbose: true}).pop();
+    const history = game.history({verbose: true});
+    const lastMove = history.pop();
     
     const updateData: any = {
         fen: game.fen(),
@@ -85,6 +86,7 @@ export const createNewGame = async (gameId: string, userId: string) => {
         request: null,
         requestingPlayer: null,
         status: 'active',
+        lastMove: null,
     });
 };
 

@@ -112,13 +112,6 @@ export function ChessGame({ gameId }: { gameId: string }) {
     updateCapturedPieces(currentGame);
     checkGameOver(currentGame);
     setIsMyTurn(currentColor === currentGame.turn());
-    const history = currentGame.history({ verbose: true });
-    const lastMoveFromHistory = history.pop();
-    if(lastMoveFromHistory) {
-      setLastMove({from: lastMoveFromHistory.from, to: lastMoveFromHistory.to});
-    } else {
-      setLastMove(null);
-    }
   }, [updateCapturedPieces, checkGameOver]);
 
   useEffect(() => {
@@ -143,6 +136,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
           if (gameData.fen) {
             const newGame = new Chess(gameData.fen);
             setGame(newGame);
+            setLastMove(gameData.lastMove || null);
             updateGameState(newGame, color);
           } else {
             createFirebaseGame(gameId, userId).then(() => {
