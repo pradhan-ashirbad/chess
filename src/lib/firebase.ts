@@ -1,3 +1,4 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc } from "firebase/firestore";
@@ -28,11 +29,11 @@ export const subscribeToGame = (gameId: string, onUpdate: (gameData: any) => voi
     });
 }
 
-export const updateGame = async (gameId: string, game: Chess) => {
+export const updateGame = async (gameId: string, game: Chess, endGame = false) => {
     const gameRef = getGameRef(gameId);
     const lastMove = game.history({verbose: true}).pop();
     
-    const updateData: { fen: string; lastMove: { from: string; to: string } | null } = {
+    const updateData: any = {
         fen: game.fen(),
         lastMove: null
     };
@@ -40,51 +41,69 @@ export const updateGame = async (gameId: string, game: Chess) => {
     if (lastMove) {
         updateData.lastMove = { from: lastMove.from, to: lastMove.to };
     }
+    
+    if (endGame) {
+        updateData.status = 'ended';
+    }
 
     await updateDoc(gameRef, updateData);
 }
 
-export const joinGame = async (gameId:string): Promise<'w' | 'b' | 'spectator'> => {
+export const joinGame = async (gameId:string): Promise<{color: 'w' | 'b' | 'spectator', userId: string}> => {
   const gameRef = getGameRef(gameId);
   const docSnap = await getDoc(gameRef);
 
-  if (!docSnap.exists()) {
-    // This function assumes the game document exists. 
-    // It should be created before calling join.
-    // However, as a fallback, we can create it.
-    await createNewGame(gameId);
-    return 'w';
-  }
-  
-  const gameData = docSnap.data();
-  // Using simple IDs for now. In a real app, use Firebase Auth UIDs.
   const tempUserId = localStorage.getItem('chessUserId') || `user_${Date.now()}`;
   localStorage.setItem('chessUserId', tempUserId);
 
-  if (gameData.white === tempUserId) return 'w';
-  if (gameData.black === tempUserId) return 'b';
+  if (!docSnap.exists()) {
+    await createNewGame(gameId, tempUserId);
+    return { color: 'w', userId: tempUserId};
+  }
+  
+  const gameData = docSnap.data();
+  
+  if (gameData.white === tempUserId) return { color: 'w', userId: tempUserId };
+  if (gameData.black === tempUserId) return { color: 'b', userId: tempUserId };
 
 
   if (!gameData.white) {
     await updateDoc(gameRef, { white: tempUserId });
-    return 'w';
+    return { color: 'w', userId: tempUserId };
   } else if (!gameData.black) {
     await updateDoc(gameRef, { black: tempUserId });
-    return 'b';
+    return { color: 'b', userId: tempUserId };
   }
   
-  return 'spectator';
+  return { color: 'spectator', userId: tempUserId };
 };
 
-export const createNewGame = async (gameId: string) => {
+export const createNewGame = async (gameId: string, userId: string) => {
     const gameRef = getGameRef(gameId);
     const game = new Chess();
     await setDoc(gameRef, { 
         fen: game.fen(),
-        white: null,
+        white: userId,
         black: null,
         createdAt: new Date(),
+        request: null,
+        requestingPlayer: null,
+        status: 'active',
     });
 };
 
-    
+export const sendGameRequest = async (gameId: string, type: 'new' | 'end', userId: string) => {
+  const gameRef = getGameRef(gameId);
+  await updateDoc(gameRef, {
+    request: type,
+    requestingPlayer: userId,
+  });
+};
+
+export const clearGameRequest = async (gameId: string) => {
+  const gameRef = getGameRef(gameId);
+  await updateDoc(gameRef, {
+    request: null,
+    requestingPlayer: null,
+  });
+}

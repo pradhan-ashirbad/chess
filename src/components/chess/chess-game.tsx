@@ -15,10 +15,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Undo2 } from "lucide-react";
+import { RefreshCw, XCircle } from "lucide-react";
 import { ChessPiece } from "./chess-piece";
-import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame as createFirebaseGame } from "@/lib/firebase";
+import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame as createFirebaseGame, sendGameRequest, clearGameRequest } from "@/lib/firebase";
 import { PromotionDialog } from "./promotion-dialog";
+import { useRouter } from "next/navigation";
+import { ConfirmationDialog } from "./confirmation-dialog";
+
 
 export function ChessGame({ gameId }: { gameId: string }) {
   const [game, setGame] = useState(new Chess());
@@ -30,9 +33,14 @@ export function ChessGame({ gameId }: { gameId: string }) {
     b: Piece[];
   }>({ w: [], b: [] });
   const [playerColor, setPlayerColor] = useState<'w' | 'b' | 'spectator' | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(null);
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [lastMove, setLastMove] = useState<{ from: Square, to: Square } | null>(null);
   const [promotionMove, setPromotionMove] = useState<{ from: Square; to: Square; } | null>(null);
+  const router = useRouter();
+
+  const [gameRequest, setGameRequest] = useState<{ type: 'new' | 'end'; from: string } | null>(null);
+
 
   const updateCapturedPieces = useCallback((currentGame: Chess) => {
     const newCaptured = { w: [], b: [] };
@@ -116,16 +124,28 @@ export function ChessGame({ gameId }: { gameId: string }) {
   useEffect(() => {
     let unsubscribe: () => void;
     if (gameId) {
-      joinFirebaseGame(gameId).then(color => {
+      joinFirebaseGame(gameId).then(({color, userId}) => {
         setPlayerColor(color);
+        setPlayerId(userId);
         
         unsubscribe = subscribeToGame(gameId, (gameData) => {
+          if (gameData?.request && gameData.requestingPlayer !== userId) {
+            setGameRequest({ type: gameData.request, from: gameData.requestingPlayer });
+          } else {
+            setGameRequest(null);
+          }
+
+          if(gameData?.status === 'ended') {
+            router.push('/');
+            return;
+          }
+
           if (gameData && gameData.fen) {
             const newGame = new Chess(gameData.fen);
             setGame(newGame);
             updateGameState(newGame, color);
           } else {
-            createFirebaseGame(gameId).then(() => {
+            createFirebaseGame(gameId, userId).then(() => {
                updateGameState(new Chess(), color);
             })
           }
@@ -138,14 +158,44 @@ export function ChessGame({ gameId }: { gameId: string }) {
         unsubscribe();
       }
     };
-  }, [gameId, updateGameState]);
+  }, [gameId, updateGameState, router]);
 
 
   const resetGame = useCallback(async () => {
-    if(gameId) {
-      await createFirebaseGame(gameId);
+    if(gameId && playerId) {
+      await createFirebaseGame(gameId, playerId);
+      await clearGameRequest(gameId);
     }
-  }, [gameId]);
+  }, [gameId, playerId]);
+  
+  const handleRequestNewGame = async () => {
+    if (gameId && playerId) {
+      await sendGameRequest(gameId, 'new', playerId);
+    }
+  };
+
+  const handleRequestEndGame = async () => {
+    if (gameId && playerId) {
+      await sendGameRequest(gameId, 'end', playerId);
+    }
+  };
+  
+  const handleConfirmRequest = async () => {
+    if (!gameRequest || !gameId) return;
+
+    if (gameRequest.type === 'new') {
+      await resetGame();
+    } else if (gameRequest.type === 'end') {
+      await updateGame(gameId, game, true); // end game
+      router.push('/');
+    }
+  };
+
+  const handleDenyRequest = async () => {
+    if (gameId) {
+      await clearGameRequest(gameId);
+    }
+  };
 
 
   const handleMove = useCallback(
@@ -175,7 +225,12 @@ export function ChessGame({ gameId }: { gameId: string }) {
     (square: Square) => {
       const pieceOnSquare = game.get(square);
 
-      if (gameOver.isGameOver || playerColor === 'spectator') return;
+      if (gameOver.isGameOver || playerColor === 'spectator' || game.turn() !== playerColor) {
+        if(selectedSquare) {
+          setSelectedSquare(null);
+        }
+        return;
+      };
 
       if (selectedSquare) {
         const legalMovesForPiece = game.moves({ square: selectedSquare, verbose: true });
@@ -207,22 +262,9 @@ export function ChessGame({ gameId }: { gameId: string }) {
     },
     [game, selectedSquare, handleMove, gameOver.isGameOver, playerColor]
   );
-  
-  const undoMove = useCallback(async () => {
-    if (playerColor === 'spectator') return;
-    if (game.history().length < 2) return;
-
-    const newGame = new Chess(game.fen());
-    newGame.undo();
-    newGame.undo();
-
-    await updateGame(gameId, newGame);
-    
-  }, [game, gameId, playerColor]);
 
   const turn = game.turn();
   const isCheck = game.isCheck();
-  const history = game.history();
 
   const legalMovesForSelectedPiece = selectedSquare
     ? game.moves({ square: selectedSquare, verbose: true })
@@ -270,7 +312,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
       <div className="flex w-full flex-col items-center gap-4">
         <div className="relative flex w-full items-center justify-center">
           <div className="absolute left-0 flex gap-2">
-            <Button onClick={resetGame} variant="secondary" className="rounded-full shadow-sm">
+            <Button onClick={handleRequestNewGame} variant="secondary" className="rounded-full shadow-sm" disabled={playerColor === 'spectator'}>
               <RefreshCw /> 
             </Button>
           </div>
@@ -289,8 +331,8 @@ export function ChessGame({ gameId }: { gameId: string }) {
             )}
           </div>
           <div className="absolute right-0 flex gap-2">
-            <Button onClick={undoMove} disabled={history.length < 2 || playerColor === 'spectator'} variant="secondary" className="rounded-full shadow-sm">
-              <Undo2 />
+            <Button onClick={handleRequestEndGame} disabled={playerColor === 'spectator'} variant="destructive" className="rounded-full shadow-sm">
+              <XCircle />
             </Button>
           </div>
         </div>
@@ -326,6 +368,13 @@ export function ChessGame({ gameId }: { gameId: string }) {
         isOpen={!!promotionMove}
         color={game.turn()}
         onSelect={handlePromotion}
+      />
+       <ConfirmationDialog
+        isOpen={!!gameRequest}
+        title={`Opponent wants to ${gameRequest?.type === 'new' ? 'start a new game' : 'end the game'}`}
+        description="Do you agree?"
+        onConfirm={handleConfirmRequest}
+        onCancel={handleDenyRequest}
       />
     </>
   );
