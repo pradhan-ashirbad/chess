@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RefreshCw, XCircle } from "lucide-react";
 import { ChessPiece } from "./chess-piece";
-import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame as createFirebaseGame, sendGameRequest, clearGameRequest } from "@/lib/firebase";
+import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame as createFirebaseGame, sendGameRequest, clearGameRequest, deleteGame } from "@/lib/firebase";
 import { PromotionDialog } from "./promotion-dialog";
 import { useRouter } from "next/navigation";
 import { ConfirmationDialog } from "./confirmation-dialog";
@@ -129,18 +129,18 @@ export function ChessGame({ gameId }: { gameId: string }) {
         setPlayerId(userId);
         
         unsubscribe = subscribeToGame(gameId, (gameData) => {
-          if (gameData?.request && gameData.requestingPlayer !== userId) {
+          if (!gameData) { // Document was deleted
+            router.push('/');
+            return;
+          }
+
+          if (gameData.request && gameData.requestingPlayer !== userId) {
             setGameRequest({ type: gameData.request, from: gameData.requestingPlayer });
           } else {
             setGameRequest(null);
           }
 
-          if(gameData?.status === 'ended') {
-            router.push('/');
-            return;
-          }
-
-          if (gameData && gameData.fen) {
+          if (gameData.fen) {
             const newGame = new Chess(gameData.fen);
             setGame(newGame);
             updateGameState(newGame, color);
@@ -186,8 +186,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
     if (gameRequest.type === 'new') {
       await resetGame();
     } else if (gameRequest.type === 'end') {
-      await updateGame(gameId, game, true); // end game
-      router.push('/');
+      await deleteGame(gameId);
     }
   };
 

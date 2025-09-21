@@ -1,7 +1,7 @@
 
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { Chess } from "chess.js";
 
 // Your web app's Firebase configuration
@@ -29,7 +29,7 @@ export const subscribeToGame = (gameId: string, onUpdate: (gameData: any) => voi
     });
 }
 
-export const updateGame = async (gameId: string, game: Chess, endGame = false) => {
+export const updateGame = async (gameId: string, game: Chess) => {
     const gameRef = getGameRef(gameId);
     const lastMove = game.history({verbose: true}).pop();
     
@@ -42,10 +42,6 @@ export const updateGame = async (gameId: string, game: Chess, endGame = false) =
         updateData.lastMove = { from: lastMove.from, to: lastMove.to };
     }
     
-    if (endGame) {
-        updateData.status = 'ended';
-    }
-
     await updateDoc(gameRef, updateData);
 }
 
@@ -78,12 +74,12 @@ export const joinGame = async (gameId:string): Promise<{color: 'w' | 'b' | 'spec
   return { color: 'spectator', userId: tempUserId };
 };
 
-export const createNewGame = async (gameId: string, userId?: string) => {
+export const createNewGame = async (gameId: string, userId: string) => {
     const gameRef = getGameRef(gameId);
     const game = new Chess();
     await setDoc(gameRef, { 
         fen: game.fen(),
-        white: userId || null,
+        white: userId,
         black: null,
         createdAt: new Date(),
         request: null,
@@ -107,3 +103,8 @@ export const clearGameRequest = async (gameId: string) => {
     requestingPlayer: null,
   });
 }
+
+export const deleteGame = async (gameId: string) => {
+  const gameRef = getGameRef(gameId);
+  await deleteDoc(gameRef);
+};
