@@ -78,12 +78,12 @@ export const joinGame = async (gameId:string): Promise<{color: 'w' | 'b' | 'spec
   return { color: 'spectator', userId: tempUserId };
 };
 
-export const createNewGame = async (gameId: string, userId: string) => {
+export const createNewGame = async (gameId: string, userId?: string) => {
     const gameRef = getGameRef(gameId);
     const game = new Chess();
     await setDoc(gameRef, { 
         fen: game.fen(),
-        white: userId,
+        white: userId || null,
         black: null,
         createdAt: new Date(),
         request: null,

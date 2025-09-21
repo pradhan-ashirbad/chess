@@ -17,8 +17,11 @@ export default function Home() {
   const handleCreateNewGame = async () => {
     try {
       const newGameId = Math.random().toString(36).substr(2, 9);
+      const tempUserId = localStorage.getItem('chessUserId') || `user_${Date.now()}`;
+      localStorage.setItem('chessUserId', tempUserId);
+      
       // Ensure the game is created before navigating
-      await createFirebaseGame(newGameId);
+      await createFirebaseGame(newGameId, tempUserId);
       
       const gameUrl = `${window.location.origin}/game/${newGameId}`;
       await navigator.clipboard.writeText(gameUrl);
