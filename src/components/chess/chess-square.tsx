@@ -36,7 +36,7 @@ export function ChessSquare({
       className={cn(
         "relative flex h-full w-full cursor-pointer items-center justify-center",
         isLight ? "bg-primary" : "bg-accent",
-        isSelected && "bg-yellow-400/80 dark:bg-yellow-600/80",
+        isSelected && "bg-green-500/70",
         isLastMove && "bg-yellow-400/50 dark:bg-yellow-600/50"
       )}
     >
