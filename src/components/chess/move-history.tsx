@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -17,7 +16,7 @@ export function MoveHistory({ moves }: MoveHistoryProps) {
   // Format moves into pairs for display
   const movePairs: [number, string, string?][] = [];
   for (let i = 0; i < moves.length; i += 2) {
-    movePairs.push([i / 2 + 1, moves[i].san, moves[i + 1]?.san]);
+    movePairs.push([Math.floor(i / 2) + 1, moves[i].san, moves[i + 1]?.san]);
   }
 
   useEffect(() => {
