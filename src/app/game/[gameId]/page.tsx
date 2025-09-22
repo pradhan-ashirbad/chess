@@ -1,8 +1,8 @@
 
 import { ChessGame } from "@/components/chess/chess-game";
 
-export default function GamePage({ params }: { params: { gameId: string } }) {
-  const { gameId } = params;
+export default async function GamePage({ params }: { params: Promise<{ gameId: string }> }) {
+  const { gameId } = await params;
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
