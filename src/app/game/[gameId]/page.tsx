@@ -1,6 +1,5 @@
 
 import { ChessGame } from "@/components/chess/chess-game";
-import { ThemeSwitcher } from "@/components/chess/theme-switcher";
 
 export default async function GamePage({ params }: { params: Promise<{ gameId: string }> }) {
   const { gameId } = await params;
@@ -11,9 +10,6 @@ export default async function GamePage({ params }: { params: Promise<{ gameId: s
         <h1 className="text-center font-headline text-4xl font-bold tracking-tight text-foreground/90 sm:text-5xl md:text-6xl">
           Web Chess Arena
         </h1>
-        <div className="absolute right-0">
-          <ThemeSwitcher />
-        </div>
       </div>
       <ChessGame gameId={gameId} />
     </main>

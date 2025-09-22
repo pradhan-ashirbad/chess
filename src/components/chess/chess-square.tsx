@@ -30,12 +30,6 @@ export function ChessSquare({
     e.dataTransfer.setData("text/plain", square);
   };
 
-  const backgroundColor = () => {
-    if (isSelected) return 'rgba(16, 185, 129, 0.7)';
-    if (isLastMove) return 'rgba(250, 204, 21, 0.5)';
-    return isLight ? 'var(--board-light)' : 'var(--board-dark)';
-  };
-
   return (
     <div
       onClick={onClick}
