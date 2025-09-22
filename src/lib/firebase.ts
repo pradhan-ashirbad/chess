@@ -115,3 +115,8 @@ export const deleteGame = async (gameId: string) => {
   const gameRef = getGameRef(gameId);
   await deleteDoc(gameRef);
 };
+
+export const updateGamePersona = async (gameId: string, persona: string) => {
+    const gameRef = getGameRef(gameId);
+    await updateDoc(gameRef, { persona: persona });
+};

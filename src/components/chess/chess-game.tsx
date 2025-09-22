@@ -17,12 +17,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { RefreshCw, XCircle } from "lucide-react";
 import { ChessPiece } from "./chess-piece";
-import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame as createFirebaseGame, sendGameRequest, clearGameRequest, deleteGame } from "@/lib/firebase";
+import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGame as createFirebaseGame, sendGameRequest, clearGameRequest, deleteGame, updateGamePersona } from "@/lib/firebase";
 import { PromotionDialog } from "./promotion-dialog";
 import { useRouter } from "next/navigation";
 import { ConfirmationDialog } from "./confirmation-dialog";
 import { CommentaryBox } from "./commentary-box";
 import { getCommentary } from "@/ai/flows/commentary-flow";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 
 export function ChessGame({ gameId }: { gameId: string }) {
@@ -134,9 +136,9 @@ export function ChessGame({ gameId }: { gameId: string }) {
     updateCapturedPieces(newGame);
     checkGameOver(newGame);
     setIsMyTurn(currentColor === newGame.turn());
+    const persona = gameData.persona || 'commentator';
+    setGamePersona(persona);
     if (game.pgn() !== newGame.pgn()) {
-        const persona = gameData.persona || 'commentator';
-        setGamePersona(persona);
         handleNewMoveCommentary(newGame.pgn(), persona);
     }
   }, [updateCapturedPieces, checkGameOver, handleNewMoveCommentary, game]);
@@ -215,6 +217,13 @@ export function ChessGame({ gameId }: { gameId: string }) {
   const handleOpponentRequestDeny = async () => {
     if (gameId) {
       await clearGameRequest(gameId);
+    }
+  };
+
+  const handlePersonaChange = async (newPersona: string) => {
+    if (gameId && playerColor !== 'spectator') {
+      setGamePersona(newPersona);
+      await updateGamePersona(gameId, newPersona);
     }
   };
 
@@ -375,6 +384,20 @@ export function ChessGame({ gameId }: { gameId: string }) {
           </div>
         </div>
         <div className="md:col-span-1 flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+              <Label htmlFor="persona" className="text-center">AI Personality</Label>
+              <Select value={gamePersona} onValueChange={handlePersonaChange} disabled={playerColor === 'spectator'}>
+                <SelectTrigger id="persona">
+                  <SelectValue placeholder="Select a persona" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="commentator">Enthusiastic Commentator</SelectItem>
+                  <SelectItem value="salty">Salty Grandmaster</SelectItem>
+                  <SelectItem value="dramatic">Overly Dramatic Poet</SelectItem>
+                  <SelectItem value="robot">ChessBot 3000</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           <CommentaryBox
             commentary={commentary}
             isLoading={isCommentaryLoading}
