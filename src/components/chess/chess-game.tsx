@@ -373,11 +373,11 @@ export function ChessGame({ gameId }: { gameId: string }) {
           </div>
         </div>
         <div className="md:col-span-1 flex flex-col gap-4">
-          <MoveHistory moves={game.history()} />
           <CommentaryBox
             commentary={commentary}
             isLoading={isCommentaryLoading}
           />
+          <MoveHistory moves={game.history({ verbose: true })} />
         </div>
       </div>
       <AlertDialog open={gameOver.isGameOver} onOpenChange={(open) => { if (!open) { if (gameId && playerId) { clearGameRequest(gameId); } setGameOver({isGameOver: false, message: ''}); }}}>
@@ -413,5 +413,3 @@ export function ChessGame({ gameId }: { gameId: string }) {
     </>
   );
 }
-
-    

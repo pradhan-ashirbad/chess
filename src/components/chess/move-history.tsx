@@ -5,9 +5,10 @@ import { useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Move } from "chess.js";
 
 interface MoveHistoryProps {
-  moves: string[];
+  moves: Move[];
 }
 
 export function MoveHistory({ moves }: MoveHistoryProps) {
@@ -16,7 +17,7 @@ export function MoveHistory({ moves }: MoveHistoryProps) {
   // Format moves into pairs for display
   const movePairs: [number, string, string?][] = [];
   for (let i = 0; i < moves.length; i += 2) {
-    movePairs.push([i / 2 + 1, moves[i], moves[i + 1]]);
+    movePairs.push([i / 2 + 1, moves[i].san, moves[i + 1]?.san]);
   }
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export function MoveHistory({ moves }: MoveHistoryProps) {
       </CardHeader>
       <Separator />
       <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100vh-22rem)] md:h-[calc(100vh-20rem)]" ref={scrollAreaRef}>
+        <ScrollArea className="h-96" ref={scrollAreaRef}>
           <div className="p-4">
             {movePairs.length === 0 ? (
               <p className="text-center text-muted-foreground">No moves yet.</p>
