@@ -41,6 +41,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
   const router = useRouter();
 
   const [gameRequest, setGameRequest] = useState<{ type: 'new' | 'end'; from: string } | null>(null);
+  const [localRequest, setLocalRequest] = useState<'new' | 'end' | null>(null);
 
 
   const updateCapturedPieces = useCallback((currentGame: Chess) => {
@@ -166,19 +167,18 @@ export function ChessGame({ gameId }: { gameId: string }) {
     }
   }, [gameId, playerId]);
   
-  const handleRequestNewGame = async () => {
-    if (gameId && playerId) {
-      await sendGameRequest(gameId, 'new', playerId);
-    }
+  const handleConfirmLocalRequest = async () => {
+    if (!localRequest || !gameId || !playerId) return;
+
+    await sendGameRequest(gameId, localRequest, playerId);
+    setLocalRequest(null);
   };
 
-  const handleRequestEndGame = async () => {
-    if (gameId && playerId) {
-      await sendGameRequest(gameId, 'end', playerId);
-    }
+  const handleDenyLocalRequest = () => {
+    setLocalRequest(null);
   };
   
-  const handleConfirmRequest = async () => {
+  const handleOpponentRequestConfirm = async () => {
     if (!gameRequest || !gameId) return;
 
     if (gameRequest.type === 'new') {
@@ -188,7 +188,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
     }
   };
 
-  const handleDenyRequest = async () => {
+  const handleOpponentRequestDeny = async () => {
     if (gameId) {
       await clearGameRequest(gameId);
     }
@@ -315,7 +315,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
         <div className="md:col-span-2 flex flex-col items-center gap-4">
           <div className="relative flex w-full items-center justify-center">
             <div className="absolute left-0 flex gap-2">
-              <Button onClick={handleRequestNewGame} variant="secondary" className="rounded-full shadow-sm" disabled={playerColor === 'spectator'}>
+              <Button onClick={() => setLocalRequest('new')} variant="secondary" className="rounded-full shadow-sm" disabled={playerColor === 'spectator'}>
                 <RefreshCw /> 
               </Button>
             </div>
@@ -334,7 +334,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
               )}
             </div>
             <div className="absolute right-0 flex gap-2">
-              <Button onClick={handleRequestEndGame} disabled={playerColor === 'spectator'} variant="destructive" className="rounded-full shadow-sm">
+              <Button onClick={() => setLocalRequest('end')} disabled={playerColor === 'spectator'} variant="destructive" className="rounded-full shadow-sm">
                 <XCircle />
               </Button>
             </div>
@@ -380,9 +380,18 @@ export function ChessGame({ gameId }: { gameId: string }) {
         isOpen={!!gameRequest}
         title={`Opponent wants to ${gameRequest?.type === 'new' ? 'start a new game' : 'end the game'}`}
         description="Do you agree?"
-        onConfirm={handleConfirmRequest}
-        onCancel={handleDenyRequest}
+        onConfirm={handleOpponentRequestConfirm}
+        onCancel={handleOpponentRequestDeny}
+      />
+      <ConfirmationDialog
+        isOpen={!!localRequest}
+        title={`Are you sure you want to ${localRequest === 'new' ? 'request a new game' : 'request to end the game'}?`}
+        description="This will send a request to your opponent."
+        onConfirm={handleConfirmLocalRequest}
+        onCancel={handleDenyLocalRequest}
       />
     </>
   );
 }
+
+    
