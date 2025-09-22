@@ -1,10 +1,7 @@
+
 "use client";
 
 import type { Piece } from "chess.js";
-import {
-  BlackPawn, WhitePawn, BlackKnight, WhiteKnight, BlackBishop, WhiteBishop,
-  BlackRook, WhiteRook, BlackQueen, WhiteQueen, BlackKing, WhiteKing,
-} from "@/lib/chess-pieces";
 import { cn } from "@/lib/utils";
 
 interface ChessPieceProps {
@@ -13,35 +10,32 @@ interface ChessPieceProps {
   isCaptured?: boolean;
 }
 
-const pieceComponents = {
-  p: { w: WhitePawn, b: BlackPawn },
-  n: { w: WhiteKnight, b: BlackKnight },
-  b: { w: WhiteBishop, b: BlackBishop },
-  r: { w: WhiteRook, b: BlackRook },
-  q: { w: WhiteQueen, b: BlackQueen },
-  k: { w: WhiteKing, b: BlackKing },
+const pieceUnicode = {
+  p: { w: "♙", b: "♟" },
+  n: { w: "♘", b: "♞" },
+  b: { w: "♗", b: "♝" },
+  r: { w: "♖", b: "♜" },
+  q: { w: "♕", b: "♛" },
+  k: { w: "♔", b: "♚" },
 };
 
 export function ChessPiece({ piece, onDragStart, isCaptured = false }: ChessPieceProps) {
-  const PieceComponent = pieceComponents[piece.type][piece.color];
+  const pieceChar = pieceUnicode[piece.type][piece.color];
 
-  if (!PieceComponent) return null;
+  if (!pieceChar) return null;
 
   return (
     <div
       draggable={!isCaptured}
       onDragStart={onDragStart}
       className={cn(
-        "h-full w-full",
-        !isCaptured && "cursor-grab active:cursor-grabbing"
+        "h-full w-full flex items-center justify-center text-4xl md:text-5xl",
+        !isCaptured && "cursor-grab active:cursor-grabbing",
+        piece.color === 'w' ? 'text-white' : 'text-black',
+        "transition-transform duration-100 ease-in-out hover:scale-110 drop-shadow-[0_2px_2px_rgba(0,0,0,0.4)]"
       )}
     >
-      <PieceComponent
-        className={cn(
-          "h-full w-full",
-          !isCaptured && "transition-transform duration-100 ease-in-out hover:scale-110 drop-shadow-[0_2px_2px_rgba(0,0,0,0.4)]"
-        )}
-      />
+      {pieceChar}
     </div>
   );
 }

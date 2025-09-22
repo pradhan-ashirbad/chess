@@ -8,16 +8,6 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
-import {
-  WhiteQueen,
-  WhiteRook,
-  WhiteBishop,
-  WhiteKnight,
-  BlackQueen,
-  BlackRook,
-  BlackBishop,
-  BlackKnight,
-} from "@/lib/chess-pieces";
 import type { PieceSymbol } from "chess.js";
 
 interface PromotionDialogProps {
@@ -26,25 +16,24 @@ interface PromotionDialogProps {
   onSelect: (piece: PieceSymbol) => void;
 }
 
+const pieceUnicode = {
+  q: { w: "♕", b: "♛" },
+  r: { w: "♖", b: "♜" },
+  b: { w: "♗", b: "♝" },
+  n: { w: "♘", b: "♞" },
+};
+
 export function PromotionDialog({
   isOpen,
   color,
   onSelect,
 }: PromotionDialogProps) {
-  const promotionPieces =
-    color === "w"
-      ? [
-          { piece: "q", Component: WhiteQueen },
-          { piece: "r", Component: WhiteRook },
-          { piece: "b", Component: WhiteBishop },
-          { piece: "n", Component: WhiteKnight },
-        ]
-      : [
-          { piece: "q", Component: BlackQueen },
-          { piece: "r", Component: BlackRook },
-          { piece: "b", Component: BlackBishop },
-          { piece: "n", Component: BlackKnight },
-        ];
+  const promotionPieces: {piece: PieceSymbol, char: string}[] = [
+    {piece: 'q', char: pieceUnicode.q[color]},
+    {piece: 'r', char: pieceUnicode.r[color]},
+    {piece: 'b', char: pieceUnicode.b[color]},
+    {piece: 'n', char: pieceUnicode.n[color]},
+  ]
 
   return (
     <AlertDialog open={isOpen}>
@@ -56,13 +45,14 @@ export function PromotionDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="flex justify-around p-4">
-          {promotionPieces.map(({ piece, Component }) => (
+          {promotionPieces.map(({ piece, char }) => (
             <div
               key={piece}
-              className="h-16 w-16 cursor-pointer transition-transform hover:scale-110"
+              className="h-16 w-16 cursor-pointer transition-transform hover:scale-110 flex items-center justify-center text-5xl"
               onClick={() => onSelect(piece as PieceSymbol)}
+              style={{color: color === 'w' ? 'black' : 'black'}}
             >
-              <Component />
+              {char}
             </div>
           ))}
         </div>
