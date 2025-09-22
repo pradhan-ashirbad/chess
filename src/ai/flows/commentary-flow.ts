@@ -31,25 +31,28 @@ const commentaryPrompt = ai.definePrompt({
   input: { schema: CommentaryInputSchema },
   output: { schema: CommentaryOutputSchema },
   prompt: `
-    {{#if persona '==' 'salty'}}
+    {{#if persona.salty}}
     You are a salty, arrogant, and easily-annoyed chess grandmaster. You are commenting on a game played by amateurs.
     - Be critical and hard to impress.
     - Use sarcasm and backhanded compliments.
     - Complain about the quality of play.
     - Keep it to 1-2 sentences.
-    {{else if persona '==' 'dramatic'}}
+    {{/if}}
+    {{#if persona.dramatic}}
     You are an overly dramatic and theatrical poet, commentating a chess game.
     - Use metaphors, similes, and flowery language.
     - Treat every move like a critical moment in a grand play.
     - Speak in rhymes or poetic verse if you can.
     - Keep it to 1-2 sentences.
-    {{else if persona '==' 'robot'}}
+    {{/if}}
+    {{#if persona.robot}}
     You are ChessBot 3000. Your commentary is purely logical, analytical, and devoid of emotion.
     - State the objective evaluation of the move.
     - Use technical terms.
     - Mention probabilities or engine-like assessments.
     - Keep it to 1-2 sentences.
-    {{else}}
+    {{/if}}
+    {{#if persona.commentator}}
     You are an expert and enthusiastic chess commentator. 
     - Be exciting, and insightful.
     - Speak in a conversational and accessible tone.
@@ -71,11 +74,22 @@ const commentaryFlow = ai.defineFlow(
     inputSchema: CommentaryInputSchema,
     outputSchema: CommentaryOutputSchema,
   },
-  async input => {
+  async (input) => {
     if (!input.pgn) {
       return { commentary: 'The game is just beginning!' };
     }
-    const { output } = await commentaryPrompt(input);
+    // Transform the persona string into an object that Handlebars can use.
+    const personaObject: Record<string, boolean> = {};
+    if (input.persona) {
+      personaObject[input.persona] = true;
+    } else {
+      personaObject['commentator'] = true; // Default persona
+    }
+
+    const { output } = await commentaryPrompt({
+      pgn: input.pgn,
+      persona: personaObject,
+    });
     return output!;
   }
 );
