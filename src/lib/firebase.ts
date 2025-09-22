@@ -2,7 +2,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { Chess } from "chess.js";
+import { Chess, Move } from "chess.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -36,7 +36,7 @@ export const subscribeToGame = (gameId: string, onUpdate: (gameData: any) => voi
 export const updateGame = async (gameId: string, game: Chess, remainingTime?: number | null) => {
     const gameRef = getGameRef(gameId);
     const history = game.history({verbose: true});
-    const lastMove = history.length > 0 ? history[history.length-1] : null;
+    const lastMove = history.length > 0 ? history[history.length-1] as Move : null;
     
     const updateData: any = {
         fen: game.fen(),
@@ -49,7 +49,12 @@ export const updateGame = async (gameId: string, game: Chess, remainingTime?: nu
         updateData.lastMove = { from: lastMove.from, to: lastMove.to };
     }
     
-    if (remainingTime !== undefined && remainingTime !== null) {
+    const docSnap = await getDoc(gameRef);
+    if (!docSnap.exists()) return;
+
+    const gameData = docSnap.data();
+
+    if (remainingTime !== undefined && remainingTime !== null && gameData.timeControl) {
       const turn = game.turn() === 'w' ? 'b' : 'w'; // The player who just moved
       if (turn === 'w') {
         updateData.whiteTime = remainingTime;
@@ -136,3 +141,5 @@ export const deleteGame = async (gameId: string) => {
   const gameRef = getGameRef(gameId);
   await deleteDoc(gameRef);
 };
+
+    

@@ -131,17 +131,26 @@ export function ChessGame({ gameId, timeControl }: { gameId: string, timeControl
 
     let currentTimers = null;
     if (gameData?.timeControl) {
-      currentTimers = {
-        w: gameData.whiteTime,
-        b: gameData.blackTime,
-      };
-      setTimers(currentTimers);
-      lastMoveTimestampRef.current = gameData.lastMoveTimestamp || Date.now();
+        const turn = currentGame.turn();
+        const serverLastMoveTime = gameData.lastMoveTimestamp || Date.now();
+        const timeSinceLastMove = Date.now() - serverLastMoveTime;
+        
+        const whiteTime = gameData.whiteTime ?? (timeControl || 0) * 60 * 1000;
+        const blackTime = gameData.blackTime ?? (timeControl || 0) * 60 * 1000;
+        
+        currentTimers = {
+            w: turn === 'w' ? whiteTime - timeSinceLastMove : whiteTime,
+            b: turn === 'b' ? blackTime - timeSinceLastMove : blackTime,
+        };
+        
+        setTimers(currentTimers);
+        lastMoveTimestampRef.current = Date.now();
     }
     
     checkGameOver(currentGame, currentTimers);
     setIsMyTurn(currentColor === currentGame.turn());
-  }, [updateCapturedPieces, checkGameOver]);
+  }, [updateCapturedPieces, checkGameOver, timeControl]);
+
 
   useEffect(() => {
     let unsubscribe: () => void;
@@ -169,11 +178,13 @@ export function ChessGame({ gameId, timeControl }: { gameId: string, timeControl
             setLastMove(gameData.lastMove || null);
             updateGameState(newGame, color, gameData);
           } else {
-            createFirebaseGame(gameId, userId, timeControl).then(() => {
-               updateGameState(new Chess(), color, {
+            const newGame = new Chess();
+             createFirebaseGame(gameId, userId, timeControl).then(() => {
+               updateGameState(newGame, color, {
                  timeControl: timeControl,
-                 whiteTime: timeControl ? timeControl * 60 * 1000 : null,
-                 blackTime: timeControl ? timeControl * 60 * 1000 : null,
+                 whiteTime: timeControl ? timeControl * 60 * 1000 : undefined,
+                 blackTime: timeControl ? timeControl * 60 * 1000 : undefined,
+                 lastMoveTimestamp: Date.now()
                });
             })
           }
@@ -194,38 +205,37 @@ export function ChessGame({ gameId, timeControl }: { gameId: string, timeControl
 
   useEffect(() => {
     if (timerRef.current) {
-      clearInterval(timerRef.current);
+        clearInterval(timerRef.current);
     }
-    if (timers && !gameOver.isGameOver && isMyTurn) {
+    if (timers && !gameOver.isGameOver) {
         timerRef.current = setInterval(() => {
-          const timeSinceLastMove = Date.now() - lastMoveTimestampRef.current;
-          const turn = game.turn();
-          
-          const initialTime = game.history().length > 1 
-            ? (turn === 'w' ? timers.w : timers.b)
-            : (timeControl || 0) * 60 * 1000;
-
-          const newTime = initialTime - timeSinceLastMove;
-
-          const newTimers = {
-            ...timers,
-            [turn]: newTime > 0 ? newTime : 0,
-          };
-          setTimers(newTimers);
-
-          if (newTime <= 0) {
-            checkGameOver(game, newTimers);
-            if (timerRef.current) clearInterval(timerRef.current);
-          }
+            setTimers(prevTimers => {
+                if (!prevTimers) return null;
+                const turn = game.turn();
+                
+                const newTime = (turn === 'w' ? prevTimers.w : prevTimers.b) - 1000;
+                const newTimers = {
+                    ...prevTimers,
+                    [turn]: newTime > 0 ? newTime : 0,
+                };
+                
+                if (newTime <= 0) {
+                    checkGameOver(game, newTimers);
+                    if (timerRef.current) clearInterval(timerRef.current);
+                }
+                
+                return newTimers;
+            });
         }, 1000);
     }
 
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+        }
     };
-  }, [isMyTurn, timers, gameOver.isGameOver, game, checkGameOver, timeControl]);
+  }, [game, timers, gameOver.isGameOver, checkGameOver]);
+
 
   const resetGame = useCallback(async () => {
     if(gameId && playerId) {
@@ -269,17 +279,16 @@ export function ChessGame({ gameId, timeControl }: { gameId: string, timeControl
       const newGame = new Chess(game.fen());
       const moveResult = newGame.move({ from, to, promotion });
       
-      const gameWithHistory = new Chess();
-      gameWithHistory.loadPgn(game.pgn());
-      gameWithHistory.move(moveResult.san);
-
       if (moveResult) {
         let remainingTime = null;
         if (timers) {
+            // Calculate time spent on this move
             const timeSpent = Date.now() - lastMoveTimestampRef.current;
-            remainingTime = (game.turn() === 'w' ? timers.w : timers.b) - timeSpent;
+            const turn = game.turn();
+            remainingTime = (turn === 'w' ? timers.w : timers.b) - timeSpent;
         }
-        await updateGame(gameId, gameWithHistory, remainingTime);
+
+        await updateGame(gameId, newGame, remainingTime);
       }
       
       setSelectedSquare(null);
@@ -385,7 +394,7 @@ export function ChessGame({ gameId, timeControl }: { gameId: string, timeControl
       <div className="w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <div className="md:col-span-2 flex flex-col items-center gap-4">
           <div className="w-full flex justify-end">
-            {timers && <Timer time={turn === 'b' ? timers.b : timers.w} active={turn === 'b'} />}
+            {timers && <Timer time={turn === 'b' ? timers.b : timers.w} active={turn === 'b' && !gameOver.isGameOver} />}
           </div>
           <div className="relative flex w-full items-center justify-center">
             <div className="absolute left-0 flex gap-2">
@@ -397,9 +406,8 @@ export function ChessGame({ gameId, timeControl }: { gameId: string, timeControl
               <span>Turn:</span>
               <div className="flex items-center gap-2">
                 <span
-                  className={`h-4 w-4 rounded-full ${
-                    turn === "w" ? "bg-white" : "bg-black"
-                  } border border-foreground/20`}
+                  className="h-4 w-4 rounded-full bg-white border border-foreground/20"
+                  style={{ backgroundColor: turn === 'w' ? 'white' : 'black' }}
                 ></span>
                 <span className="capitalize">{turn === "w" ? "White" : "Black"}</span>
               </div>
@@ -423,7 +431,7 @@ export function ChessGame({ gameId, timeControl }: { gameId: string, timeControl
             lastMove={lastMove}
           />
            <div className="w-full flex justify-end">
-            {timers && <Timer time={turn === 'w' ? timers.w : timers.b} active={turn === 'w'} />}
+            {timers && <Timer time={turn === 'w' ? timers.w : timers.b} active={turn === 'w' && !gameOver.isGameOver} />}
           </div>
           <div className="w-full flex flex-col gap-2">
             <CapturedPiecesDisplay pieces={capturedPieces.b} player="Black" />
@@ -437,14 +445,14 @@ export function ChessGame({ gameId, timeControl }: { gameId: string, timeControl
           <MoveHistory moves={game.history()} />
         </div>
       </div>
-      <AlertDialog open={gameOver.isGameOver} onOpenChange={(open) => !open && resetGame()}>
+      <AlertDialog open={gameOver.isGameOver} onOpenChange={(open) => { if (!open) { if (gameId && playerId) { clearGameRequest(gameId); } setGameOver({isGameOver: false, message: ''}); }}}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Game Over</AlertDialogTitle>
             <AlertDialogDescription>{gameOver.message}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={resetGame}>New Game</AlertDialogAction>
+            <AlertDialogAction onClick={() => { if(gameId) setLocalRequest('new'); setGameOver({isGameOver: false, message: ''}); }}>New Game</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -470,3 +478,5 @@ export function ChessGame({ gameId, timeControl }: { gameId: string, timeControl
     </>
   );
 }
+
+    
