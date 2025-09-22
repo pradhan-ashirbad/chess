@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -8,11 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { createNewGame as createFirebaseGame } from "@/lib/firebase";
-import { Label } from "@/components/ui/label";
 
 export default function Home() {
   const [gameId, setGameId] = useState("");
-  const [time, setTime] = useState<number | undefined>(10);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -22,10 +19,9 @@ export default function Home() {
       const tempUserId = localStorage.getItem('chessUserId') || `user_${Date.now()}`;
       localStorage.setItem('chessUserId', tempUserId);
       
-      // Ensure the game is created before navigating
-      await createFirebaseGame(newGameId, tempUserId, time);
+      await createFirebaseGame(newGameId, tempUserId);
       
-      const gameUrl = `${window.location.origin}/game/${newGameId}${time ? `?time=${time}` : ''}`;
+      const gameUrl = `${window.location.origin}/game/${newGameId}`;
       await navigator.clipboard.writeText(gameUrl);
 
       toast({
@@ -33,7 +29,7 @@ export default function Home() {
         description: "The game URL has been copied to your clipboard.",
       });
 
-      router.push(`/game/${newGameId}${time ? `?time=${time}`: ''}`);
+      router.push(`/game/${newGameId}`);
     } catch (error) {
       console.error("Failed to create new game:", error);
       toast({
@@ -47,8 +43,6 @@ export default function Home() {
   const joinGame = (e: React.FormEvent) => {
     e.preventDefault();
     if (gameId) {
-      // Logic to check if the game has a time control would be needed here.
-      // For now, we assume we don't know, so we don't pass a query param.
       router.push(`/game/${gameId}`);
     }
   };
@@ -66,16 +60,6 @@ export default function Home() {
             <CardTitle className="text-center text-2xl">Play Chess</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="time">Time (minutes per side)</Label>
-              <Input 
-                id="time"
-                type="number"
-                placeholder="e.g., 10 (or leave blank for casual)"
-                value={time === undefined ? '' : time}
-                onChange={(e) => setTime(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
-              />
-            </div>
             <Button onClick={handleCreateNewGame} className="w-full">
               Create New Game
             </Button>

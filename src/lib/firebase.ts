@@ -1,4 +1,3 @@
-
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
@@ -25,15 +24,11 @@ export const getGameRef = (gameId: string) => {
 export const subscribeToGame = (gameId: string, onUpdate: (gameData: any) => void) => {
     const gameRef = getGameRef(gameId);
     return onSnapshot(gameRef, (doc) => {
-        const data = doc.data();
-        if (data && data.lastMoveTimestamp && data.lastMoveTimestamp.toDate) {
-            data.lastMoveTimestamp = data.lastMoveTimestamp.toDate().getTime();
-        }
-        onUpdate(data);
+        onUpdate(doc.data());
     });
 }
 
-export const updateGame = async (gameId: string, game: Chess, remainingTime?: number | null) => {
+export const updateGame = async (gameId: string, game: Chess) => {
     const gameRef = getGameRef(gameId);
     const history = game.history({verbose: true});
     const lastMove = history.length > 0 ? history[history.length-1] as Move : null;
@@ -42,31 +37,16 @@ export const updateGame = async (gameId: string, game: Chess, remainingTime?: nu
         fen: game.fen(),
         pgn: game.pgn(),
         lastMove: null,
-        lastMoveTimestamp: serverTimestamp(),
     };
 
     if (lastMove) {
         updateData.lastMove = { from: lastMove.from, to: lastMove.to };
     }
     
-    const docSnap = await getDoc(gameRef);
-    if (!docSnap.exists()) return;
-
-    const gameData = docSnap.data();
-
-    if (remainingTime !== undefined && remainingTime !== null && gameData.timeControl) {
-      const turn = game.turn() === 'w' ? 'b' : 'w'; // The player who just moved
-      if (turn === 'w') {
-        updateData.whiteTime = remainingTime;
-      } else {
-        updateData.blackTime = remainingTime;
-      }
-    }
-    
     await updateDoc(gameRef, updateData);
 }
 
-export const joinGame = async (gameId:string, timeControl?: number): Promise<{color: 'w' | 'b' | 'spectator', userId: string}> => {
+export const joinGame = async (gameId:string): Promise<{color: 'w' | 'b' | 'spectator', userId: string}> => {
   const gameRef = getGameRef(gameId);
   const docSnap = await getDoc(gameRef);
 
@@ -74,7 +54,7 @@ export const joinGame = async (gameId:string, timeControl?: number): Promise<{co
   localStorage.setItem('chessUserId', tempUserId);
 
   if (!docSnap.exists()) {
-    await createNewGame(gameId, tempUserId, timeControl);
+    await createNewGame(gameId, tempUserId);
     return { color: 'w', userId: tempUserId};
   }
   
@@ -95,7 +75,7 @@ export const joinGame = async (gameId:string, timeControl?: number): Promise<{co
   return { color: 'spectator', userId: tempUserId };
 };
 
-export const createNewGame = async (gameId: string, userId?: string, timeControl?: number) => {
+export const createNewGame = async (gameId: string, userId?: string) => {
     const gameRef = getGameRef(gameId);
     const game = new Chess();
     
@@ -105,18 +85,11 @@ export const createNewGame = async (gameId: string, userId?: string, timeControl
         white: userId || null,
         black: null,
         createdAt: serverTimestamp(),
-        lastMoveTimestamp: serverTimestamp(),
         request: null,
         requestingPlayer: null,
         status: 'active',
         lastMove: null,
     };
-
-    if (timeControl) {
-      gameData.timeControl = timeControl; // in minutes
-      gameData.whiteTime = timeControl * 60 * 1000; // in milliseconds
-      gameData.blackTime = timeControl * 60 * 1000;
-    }
 
     await setDoc(gameRef, gameData);
 };
@@ -141,5 +114,3 @@ export const deleteGame = async (gameId: string) => {
   const gameRef = getGameRef(gameId);
   await deleteDoc(gameRef);
 };
-
-    
