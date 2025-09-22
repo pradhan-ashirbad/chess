@@ -30,22 +30,20 @@ export function ChessSquare({
     e.dataTransfer.setData("text/plain", square);
   };
 
+  const backgroundColor = () => {
+    if (isSelected) return 'rgba(16, 185, 129, 0.7)';
+    if (isLastMove) return 'rgba(250, 204, 21, 0.5)';
+    return isLight ? 'var(--board-light)' : 'var(--board-dark)';
+  };
+
   return (
     <div
       onClick={onClick}
       className={cn(
-        "relative flex h-full w-full cursor-pointer items-center justify-center",
-        isSelected && "bg-green-500/70",
-        isLastMove && "bg-yellow-400/50 dark:bg-yellow-600/50"
+        "relative flex h-full w-full cursor-pointer items-center justify-center"
       )}
       style={{
-        backgroundColor: isSelected
-          ? 'rgba(16, 185, 129, 0.7)' // green-500/70
-          : isLastMove
-          ? 'rgba(250, 204, 21, 0.5)' // yellow-400/50
-          : isLight
-          ? 'var(--board-light)'
-          : 'var(--board-dark)',
+        backgroundColor: backgroundColor(),
       }}
     >
       {piece && <ChessPiece piece={piece} onDragStart={handleDragStart} />}

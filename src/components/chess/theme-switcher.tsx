@@ -25,16 +25,16 @@ export function ThemeSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("theme-classic")}>
+        <DropdownMenuItem onClick={() => setTheme("classic")}>
           Classic
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("theme-forest")}>
+        <DropdownMenuItem onClick={() => setTheme("forest")}>
           Forest
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("theme-frost")}>
+        <DropdownMenuItem onClick={() => setTheme("frost")}>
           Frost
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("theme-cherry")}>
+        <DropdownMenuItem onClick={() => setTheme("cherry")}>
           Cherry
         </DropdownMenuItem>
       </DropdownMenuContent>

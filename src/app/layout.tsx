@@ -3,7 +3,6 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/chess/theme-provider';
-import { ClientOnly } from '@/components/chess/client-only';
 
 export const metadata: Metadata = {
   title: 'Web Chess Arena',
@@ -23,16 +22,15 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <ClientOnly>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="classic"
-            enableSystem={false}
-          >
-            {children}
-            <Toaster />
-          </ThemeProvider>
-        </ClientOnly>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="classic"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
