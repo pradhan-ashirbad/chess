@@ -9,15 +9,25 @@ import { MessageCircle } from "lucide-react";
 interface CommentaryBoxProps {
   commentary: string;
   isLoading: boolean;
+  persona: string;
 }
 
-export function CommentaryBox({ commentary, isLoading }: CommentaryBoxProps) {
+const personaNames: Record<string, string> = {
+  commentator: 'Enthusiastic Commentator',
+  salty: 'Salty Grandmaster',
+  dramatic: 'Overly Dramatic Poet',
+  robot: 'ChessBot 3000',
+};
+
+export function CommentaryBox({ commentary, isLoading, persona }: CommentaryBoxProps) {
+  const personaName = personaNames[persona] || 'AI Commentary';
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-center text-xl flex items-center justify-center gap-2">
           <MessageCircle />
-          AI Commentary
+          {personaName}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -33,7 +43,7 @@ export function CommentaryBox({ commentary, isLoading }: CommentaryBoxProps) {
               <p>{commentary}</p>
             ) : (
               <p className="text-center text-muted-foreground">
-                The first move has been made. The AI commentator is warming up...
+                The first move has been made. The AI is warming up...
               </p>
             )}
           </div>
@@ -42,5 +52,3 @@ export function CommentaryBox({ commentary, isLoading }: CommentaryBoxProps) {
     </Card>
   );
 }
-
-    

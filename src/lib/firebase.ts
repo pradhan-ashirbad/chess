@@ -75,7 +75,7 @@ export const joinGame = async (gameId:string): Promise<{color: 'w' | 'b' | 'spec
   return { color: 'spectator', userId: tempUserId };
 };
 
-export const createNewGame = async (gameId: string, userId?: string) => {
+export const createNewGame = async (gameId: string, userId?: string, persona: string = 'commentator') => {
     const gameRef = getGameRef(gameId);
     const game = new Chess();
     
@@ -89,6 +89,7 @@ export const createNewGame = async (gameId: string, userId?: string) => {
         requestingPlayer: null,
         status: 'active',
         lastMove: null,
+        persona: persona,
     };
 
     await setDoc(gameRef, gameData);

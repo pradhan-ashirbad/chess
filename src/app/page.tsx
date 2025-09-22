@@ -7,9 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { createNewGame as createFirebaseGame } from "@/lib/firebase";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export default function Home() {
   const [gameId, setGameId] = useState("");
+  const [persona, setPersona] = useState("commentator");
   const router = useRouter();
   const { toast } = useToast();
 
@@ -19,7 +22,7 @@ export default function Home() {
       const tempUserId = localStorage.getItem('chessUserId') || `user_${Date.now()}`;
       localStorage.setItem('chessUserId', tempUserId);
       
-      await createFirebaseGame(newGameId, tempUserId);
+      await createFirebaseGame(newGameId, tempUserId, persona);
       
       const gameUrl = `${window.location.origin}/game/${newGameId}`;
       await navigator.clipboard.writeText(gameUrl);
@@ -60,6 +63,20 @@ export default function Home() {
             <CardTitle className="text-center text-2xl">Play Chess</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="persona">AI Personality</Label>
+              <Select value={persona} onValueChange={setPersona}>
+                <SelectTrigger id="persona">
+                  <SelectValue placeholder="Select a persona" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="commentator">Enthusiastic Commentator</SelectItem>
+                  <SelectItem value="salty">Salty Grandmaster</SelectItem>
+                  <SelectItem value="dramatic">Overly Dramatic Poet</SelectItem>
+                  <SelectItem value="robot">ChessBot 3000</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button onClick={handleCreateNewGame} className="w-full">
               Create New Game
             </Button>

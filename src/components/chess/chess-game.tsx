@@ -46,6 +46,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
 
   const [commentary, setCommentary] = useState('');
   const [isCommentaryLoading, setIsCommentaryLoading] = useState(false);
+  const [gamePersona, setGamePersona] = useState('commentator');
 
 
   const updateCapturedPieces = useCallback((currentGame: Chess) => {
@@ -113,11 +114,11 @@ export function ChessGame({ gameId }: { gameId: string }) {
     }
   }, []);
 
-  const handleNewMoveCommentary = useCallback(async (pgn: string) => {
+  const handleNewMoveCommentary = useCallback(async (pgn: string, persona: string) => {
     if (pgn) {
       setIsCommentaryLoading(true);
       try {
-        const response = await getCommentary({ pgn });
+        const response = await getCommentary({ pgn, persona });
         setCommentary(response.commentary);
       } catch (error) {
         console.error("Failed to get commentary:", error);
@@ -128,13 +129,15 @@ export function ChessGame({ gameId }: { gameId: string }) {
     }
   }, []);
 
-  const updateGameState = useCallback((currentGame: Chess, currentColor: typeof playerColor) => {
-    setBoard(currentGame.board());
-    updateCapturedPieces(currentGame);
-    checkGameOver(currentGame);
-    setIsMyTurn(currentColor === currentGame.turn());
-    if(game.pgn() !== currentGame.pgn()) {
-      handleNewMoveCommentary(currentGame.pgn());
+  const updateGameState = useCallback((newGame: Chess, currentColor: typeof playerColor, gameData: any) => {
+    setBoard(newGame.board());
+    updateCapturedPieces(newGame);
+    checkGameOver(newGame);
+    setIsMyTurn(currentColor === newGame.turn());
+    if (game.pgn() !== newGame.pgn()) {
+        const persona = gameData.persona || 'commentator';
+        setGamePersona(persona);
+        handleNewMoveCommentary(newGame.pgn(), persona);
     }
   }, [updateCapturedPieces, checkGameOver, handleNewMoveCommentary, game]);
 
@@ -161,13 +164,13 @@ export function ChessGame({ gameId }: { gameId: string }) {
           if (gameData.fen) {
             const newGame = new Chess();
             newGame.loadPgn(gameData.pgn || '');
-            updateGameState(newGame, color);
+            updateGameState(newGame, color, gameData);
             setGame(newGame);
             setLastMove(gameData.lastMove || null);
           } else {
             const newGame = new Chess();
              createFirebaseGame(gameId, userId).then(() => {
-               updateGameState(newGame, color);
+               updateGameState(newGame, color, { pgn: '', persona: 'commentator' });
             })
           }
         });
@@ -183,10 +186,10 @@ export function ChessGame({ gameId }: { gameId: string }) {
 
   const resetGame = useCallback(async () => {
     if(gameId && playerId) {
-      await createFirebaseGame(gameId, playerId);
+      await createFirebaseGame(gameId, playerId, gamePersona);
       await clearGameRequest(gameId);
     }
-  }, [gameId, playerId]);
+  }, [gameId, playerId, gamePersona]);
   
   const handleConfirmLocalRequest = async () => {
     if (!localRequest || !gameId || !playerId) return;
@@ -375,6 +378,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
           <CommentaryBox
             commentary={commentary}
             isLoading={isCommentaryLoading}
+            persona={gamePersona}
           />
           <MoveHistory moves={game.history({ verbose: true })} />
         </div>
