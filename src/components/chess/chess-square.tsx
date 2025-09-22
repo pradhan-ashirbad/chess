@@ -35,10 +35,18 @@ export function ChessSquare({
       onClick={onClick}
       className={cn(
         "relative flex h-full w-full cursor-pointer items-center justify-center",
-        isLight ? "bg-primary" : "bg-accent",
         isSelected && "bg-green-500/70",
         isLastMove && "bg-yellow-400/50 dark:bg-yellow-600/50"
       )}
+      style={{
+        backgroundColor: isSelected
+          ? 'rgba(16, 185, 129, 0.7)' // green-500/70
+          : isLastMove
+          ? 'rgba(250, 204, 21, 0.5)' // yellow-400/50
+          : isLight
+          ? 'var(--board-light)'
+          : 'var(--board-dark)',
+      }}
     >
       {piece && <ChessPiece piece={piece} onDragStart={handleDragStart} />}
 
