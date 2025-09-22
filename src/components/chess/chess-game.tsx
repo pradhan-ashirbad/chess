@@ -324,7 +324,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
               <div className="flex items-center gap-2">
                 <span
                   className={`h-4 w-4 rounded-full ${
-                    turn === "w" ? "bg-primary" : "bg-accent"
+                    turn === "w" ? "bg-white" : "bg-black"
                   } border border-foreground/20`}
                 ></span>
                 <span className="capitalize">{turn === "w" ? "White" : "Black"}</span>
@@ -393,5 +393,7 @@ export function ChessGame({ gameId }: { gameId: string }) {
     </>
   );
 }
+
+    
 
     
