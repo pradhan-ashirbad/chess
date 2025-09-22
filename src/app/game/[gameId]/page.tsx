@@ -1,8 +1,9 @@
 
 import { ChessGame } from "@/components/chess/chess-game";
 
-export default async function GamePage({ params }: { params: Promise<{ gameId: string }> }) {
+export default async function GamePage({ params, searchParams }: { params: Promise<{ gameId: string }>, searchParams: { [key: string]: string | string[] | undefined } }) {
   const { gameId } = await params;
+  const time = searchParams?.time ? parseInt(searchParams.time as string) : undefined;
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
@@ -11,7 +12,7 @@ export default async function GamePage({ params }: { params: Promise<{ gameId: s
           Web Chess Arena
         </h1>
       </div>
-      <ChessGame gameId={gameId} />
+      <ChessGame gameId={gameId} timeControl={time} />
     </main>
   );
 }

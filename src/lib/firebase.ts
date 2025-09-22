@@ -1,7 +1,7 @@
 
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { Chess } from "chess.js";
 
 // Your web app's Firebase configuration
@@ -25,29 +25,43 @@ export const getGameRef = (gameId: string) => {
 export const subscribeToGame = (gameId: string, onUpdate: (gameData: any) => void) => {
     const gameRef = getGameRef(gameId);
     return onSnapshot(gameRef, (doc) => {
-        onUpdate(doc.data());
+        const data = doc.data();
+        if (data && data.lastMoveTimestamp && data.lastMoveTimestamp.toDate) {
+            data.lastMoveTimestamp = data.lastMoveTimestamp.toDate().getTime();
+        }
+        onUpdate(data);
     });
 }
 
-export const updateGame = async (gameId: string, game: Chess) => {
+export const updateGame = async (gameId: string, game: Chess, remainingTime?: number | null) => {
     const gameRef = getGameRef(gameId);
     const history = game.history({verbose: true});
-    const lastMove = history.pop();
+    const lastMove = history.length > 0 ? history[history.length-1] : null;
     
     const updateData: any = {
         fen: game.fen(),
         pgn: game.pgn(),
-        lastMove: null
+        lastMove: null,
+        lastMoveTimestamp: serverTimestamp(),
     };
 
     if (lastMove) {
         updateData.lastMove = { from: lastMove.from, to: lastMove.to };
     }
     
+    if (remainingTime !== undefined && remainingTime !== null) {
+      const turn = game.turn() === 'w' ? 'b' : 'w'; // The player who just moved
+      if (turn === 'w') {
+        updateData.whiteTime = remainingTime;
+      } else {
+        updateData.blackTime = remainingTime;
+      }
+    }
+    
     await updateDoc(gameRef, updateData);
 }
 
-export const joinGame = async (gameId:string): Promise<{color: 'w' | 'b' | 'spectator', userId: string}> => {
+export const joinGame = async (gameId:string, timeControl?: number): Promise<{color: 'w' | 'b' | 'spectator', userId: string}> => {
   const gameRef = getGameRef(gameId);
   const docSnap = await getDoc(gameRef);
 
@@ -55,7 +69,7 @@ export const joinGame = async (gameId:string): Promise<{color: 'w' | 'b' | 'spec
   localStorage.setItem('chessUserId', tempUserId);
 
   if (!docSnap.exists()) {
-    await createNewGame(gameId, tempUserId);
+    await createNewGame(gameId, tempUserId, timeControl);
     return { color: 'w', userId: tempUserId};
   }
   
@@ -76,20 +90,30 @@ export const joinGame = async (gameId:string): Promise<{color: 'w' | 'b' | 'spec
   return { color: 'spectator', userId: tempUserId };
 };
 
-export const createNewGame = async (gameId: string, userId?: string) => {
+export const createNewGame = async (gameId: string, userId?: string, timeControl?: number) => {
     const gameRef = getGameRef(gameId);
     const game = new Chess();
-    await setDoc(gameRef, { 
+    
+    const gameData: any = { 
         fen: game.fen(),
         pgn: game.pgn(),
         white: userId || null,
         black: null,
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
+        lastMoveTimestamp: serverTimestamp(),
         request: null,
         requestingPlayer: null,
         status: 'active',
         lastMove: null,
-    });
+    };
+
+    if (timeControl) {
+      gameData.timeControl = timeControl; // in minutes
+      gameData.whiteTime = timeControl * 60 * 1000; // in milliseconds
+      gameData.blackTime = timeControl * 60 * 1000;
+    }
+
+    await setDoc(gameRef, gameData);
 };
 
 export const sendGameRequest = async (gameId: string, type: 'new' | 'end', userId: string) => {
