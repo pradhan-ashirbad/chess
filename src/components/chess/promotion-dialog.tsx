@@ -50,7 +50,7 @@ export function PromotionDialog({
               key={piece}
               className="h-16 w-16 cursor-pointer transition-transform hover:scale-110 flex items-center justify-center text-5xl"
               onClick={() => onSelect(piece as PieceSymbol)}
-              style={{color: color === 'w' ? 'black' : 'black'}}
+              style={{color: color === 'w' ? 'white' : 'black'}}
             >
               {char}
             </div>
