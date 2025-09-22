@@ -303,11 +303,13 @@ export function ChessGame({ gameId }: { gameId: string }) {
   const CapturedPiecesDisplay = ({
     pieces,
     player,
+    className,
   }: {
     pieces: Piece[];
     player: "White" | "Black";
+    className?: string;
   }) => (
-    <div className="min-h-[40px] w-full rounded-lg bg-card p-2 shadow-sm">
+    <div className={`min-h-[40px] w-full rounded-lg bg-card p-2 shadow-sm ${className}`}>
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold text-foreground/80">
           {player} captured:
@@ -375,15 +377,43 @@ export function ChessGame({ gameId }: { gameId: string }) {
             legalMoves={legalMovesForSelectedPiece}
             lastMove={lastMove}
           />
-          <div className="w-full flex flex-col gap-2">
+          <div className="w-full flex flex-col md:hidden gap-4">
+            <div className="text-center text-sm text-muted-foreground mt-2">
+              {getPlayerMessage()}
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="persona-mobile" className="text-center">AI Personality</Label>
+              <Select value={gamePersona} onValueChange={handlePersonaChange} disabled={playerColor === 'spectator'}>
+                <SelectTrigger id="persona-mobile">
+                  <SelectValue placeholder="Select a persona" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="commentator">Enthusiastic Commentator</SelectItem>
+                  <SelectItem value="salty">Salty Grandmaster</SelectItem>
+                  <SelectItem value="dramatic">Overly Dramatic Poet</SelectItem>
+                  <SelectItem value="robot">ChessBot 3000</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <CommentaryBox
+              commentary={commentary}
+              isLoading={isCommentaryLoading}
+              persona={gamePersona}
+            />
+            <div className="w-full flex flex-col gap-2">
+              <CapturedPiecesDisplay pieces={capturedPieces.b} player="Black" />
+              <CapturedPiecesDisplay pieces={capturedPieces.w} player="White" />
+            </div>
+          </div>
+          <div className="w-full hidden md:flex flex-col gap-2">
             <CapturedPiecesDisplay pieces={capturedPieces.b} player="Black" />
             <CapturedPiecesDisplay pieces={capturedPieces.w} player="White" />
           </div>
-          <div className="text-center text-sm text-muted-foreground mt-2">
+          <div className="text-center text-sm text-muted-foreground mt-2 hidden md:block">
             {getPlayerMessage()}
           </div>
         </div>
-        <div className="md:col-span-1 flex flex-col gap-4">
+        <div className="hidden md:flex md:col-span-1 flex-col gap-4">
           <div className="flex flex-col gap-2">
               <Label htmlFor="persona" className="text-center">AI Personality</Label>
               <Select value={gamePersona} onValueChange={handlePersonaChange} disabled={playerColor === 'spectator'}>
