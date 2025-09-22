@@ -1,3 +1,4 @@
+
 // Chess piece SVGs adapted from Cburnett's set, licensed under CC BY-SA 3.0.
 // https://en.wikipedia.org/wiki/User:Cburnett
 
@@ -11,9 +12,17 @@ export function BlackPawn(props: SVGProps<SVGSVGElement>) {
         stroke="#000"
         strokeWidth="1.5"
         strokeLinecap="round"
-        strokeLinejoin="round"
       >
-        <path d="M22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47C30.06 24.84 31 23.03 31 21c0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z" />
+        <path d="M22.5 36c3.9-1.4 5.5-4.4 5.5-10.5 0-4.5-1.5-8.5-5.5-10.5-4 2-5.5 6-5.5 10.5 0 6.1 1.6 9.1 5.5 10.5z" />
+        <path d="M22.5 12.5c-3.12 2.5-4.5 6-4.5 9.5 0 4.5 1.38 7 4.5 9.5 3.12-2.5 4.5-5 4.5-9.5 0-3.5-1.38-7-4.5-9.5z" stroke="none" />
+        <path d="M22.5 15c0 4.5 1.5 8.5 5.5 10.5" fill="none" />
+        <path d="M22.5 15c-4 2-5.5 6-5.5 10.5" fill="none" />
+        <path d="M22.5 36c-3.9-1.4-5.5-4.4-5.5-10.5" fill="none" />
+        <path d="M12 39.5h21" fill="none" strokeLinejoin="round" />
+        <path d="M22.5 12.5c-3.12 2.5-4.5 6-4.5 9.5" fill="none" />
+        <path d="M22.5 12.5c3.12 2.5 4.5 6 4.5 9.5" fill="none" />
+        <path d="M30 36.5c-2.33 1-4.66 1-7.5 0-2.84-1-5.17-1-7.5 0" fill="none" strokeLinejoin="round" />
+        <path d="M30 39.5c-2.33 1-4.66 1-7.5 0-2.84-1-5.17-1-7.5 0" fill="none" strokeLinejoin="round" />
       </g>
     </svg>
   );
@@ -22,14 +31,22 @@ export function BlackPawn(props: SVGProps<SVGSVGElement>) {
 export function WhitePawn(props: SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45" {...props}>
-      <g
+       <g
         fill="none"
         stroke="#000"
         strokeWidth="1.5"
         strokeLinecap="round"
-        strokeLinejoin="round"
       >
-        <path d="M22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47C30.06 24.84 31 23.03 31 21c0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z" />
+        <path d="M22.5 36c3.9-1.4 5.5-4.4 5.5-10.5 0-4.5-1.5-8.5-5.5-10.5-4 2-5.5 6-5.5 10.5 0 6.1 1.6 9.1 5.5 10.5z" />
+        <path d="M22.5 12.5c-3.12 2.5-4.5 6-4.5 9.5 0 4.5 1.38 7 4.5 9.5 3.12-2.5 4.5-5 4.5-9.5 0-3.5-1.38-7-4.5-9.5z" stroke="none" fill="#fff" />
+        <path d="M22.5 15c0 4.5 1.5 8.5 5.5 10.5" fill="none" />
+        <path d="M22.5 15c-4 2-5.5 6-5.5 10.5" fill="none" />
+        <path d="M22.5 36c-3.9-1.4-5.5-4.4-5.5-10.5" fill="none" />
+        <path d="M12 39.5h21" fill="none" strokeLinejoin="round" />
+        <path d="M22.5 12.5c-3.12 2.5-4.5 6-4.5 9.5" fill="none" />
+        <path d="M22.5 12.5c3.12 2.5 4.5 6 4.5 9.5" fill="none" />
+        <path d="M30 36.5c-2.33 1-4.66 1-7.5 0-2.84-1-5.17-1-7.5 0" fill="none" strokeLinejoin="round" />
+        <path d="M30 39.5c-2.33 1-4.66 1-7.5 0-2.84-1-5.17-1-7.5 0" fill="none" strokeLinejoin="round" />
       </g>
     </svg>
   );
@@ -38,7 +55,7 @@ export function WhitePawn(props: SVGProps<SVGSVGElement>) {
 export function BlackKnight(props: SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45" {...props}>
-      <g
+       <g
         fill="#000"
         stroke="#000"
         strokeWidth="1.5"
@@ -76,7 +93,7 @@ export function WhiteKnight(props: SVGProps<SVGSVGElement>) {
 export function BlackBishop(props: SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45" {...props}>
-      <g
+       <g
         fill="#000"
         stroke="#000"
         strokeWidth="1.5"
@@ -114,20 +131,18 @@ export function WhiteBishop(props: SVGProps<SVGSVGElement>) {
 export function BlackRook(props: SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45" {...props}>
-      <g
+       <g
         fill="#000"
         stroke="#000"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path
-          d="M 9,39 H 36 V 36 H 9 Z"
-          strokeLinecap="butt"
-        />
-        <path d="M 12,36 V 12 H 33 V 36 Z" strokeLinecap="butt" />
-        <path d="M 11,12 V 9 h 4 v 3 h 5 V 9 h 5 v 3 h 5 V 9 h 4 v 3" strokeLinecap="butt" />
-        <path d="M 12,12 H 33" fill="none" />
+        <path d="M 9,39 H 36 V 36 H 9 Z" />
+        <path d="m 12.5,32 1.5,-11.5 17,0 1.5,11.5" />
+        <path d="M 12,36 V 32 h 21 v 4" />
+        <path d="M 14,20.5 V 14 l 5.5,0 V 9 h 6 v 5 l 5.5,0 v 6.5" />
+        <path d="M 14,14 h 17" />
       </g>
     </svg>
   );
@@ -143,13 +158,11 @@ export function WhiteRook(props: SVGProps<SVGSVGElement>) {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path
-          d="M 9,39 H 36 V 36 H 9 Z"
-          strokeLinecap="butt"
-        />
-        <path d="M 12,36 V 12 H 33 V 36 Z" strokeLinecap="butt" />
-        <path d="M 11,12 V 9 h 4 v 3 h 5 V 9 h 5 v 3 h 5 V 9 h 4 v 3" strokeLinecap="butt" />
-        <path d="M 12,12 H 33" fill="none" />
+        <path d="M 9,39 H 36 V 36 H 9 Z" />
+        <path d="m 12.5,32 1.5,-11.5 17,0 1.5,11.5" />
+        <path d="M 12,36 V 32 h 21 v 4" />
+        <path d="M 14,20.5 V 14 l 5.5,0 V 9 h 6 v 5 l 5.5,0 v 6.5" />
+        <path d="M 14,14 h 17" />
       </g>
     </svg>
   );
@@ -165,15 +178,13 @@ export function BlackQueen(props: SVGProps<SVGSVGElement>) {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M 8 12 A 2 2 0 1 1 4 12 A 2 2 0 1 1 8 12 Z" />
-        <path d="M 24.5 7.5 A 2 2 0 1 1 20.5 7.5 A 2 2 0 1 1 24.5 7.5 Z" />
-        <path d="M 41 12 A 2 2 0 1 1 37 12 A 2 2 0 1 1 41 12 Z" />
-        <path d="M 16 8.5 A 2 2 0 1 1 12 8.5 A 2 2 0 1 1 16 8.5 Z" />
-        <path d="M 33 9 A 2 2 0 1 1 29 9 A 2 2 0 1 1 33 9 Z" />
-        <path
-          d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 25.89,36.43 32.61,35.03 36,36 C 32.61,37.03 25.89,35.57 22.5,38 19.11,35.57 12.39,37.03 9,36 z"
-        />
-        <path d="m 11,38 3,-19.5 5.5,13 L 22.5,19 25,31.5 30.5,18.5 34,38" fill="none"/>
+        <path d="M 8,12 A 2,2 0 1,1 4,12 A 2,2 0 1,1 8,12 z" />
+        <path d="M 24.5,7.5 A 2,2 0 1,1 20.5,7.5 A 2,2 0 1,1 24.5,7.5 z" />
+        <path d="M 41,12 A 2,2 0 1,1 37,12 A 2,2 0 1,1 41,12 z" />
+        <path d="M 16,8.5 A 2,2 0 1,1 12,8.5 A 2,2 0 1,1 16,8.5 z" />
+        <path d="M 33,9 A 2,2 0 1,1 29,9 A 2,2 0 1,1 33,9 z" />
+        <path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38,14 L 31,25 L 31,11 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14,10.5 L 14,25 L 7,14 L 9,26 z" />
+        <path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 32.61,37.03 25.89,35.57 22.5,38 C 19.11,35.57 12.39,37.03 9,36 z" />
       </g>
     </svg>
   );
@@ -189,15 +200,13 @@ export function WhiteQueen(props: SVGProps<SVGSVGElement>) {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M 8 12 A 2 2 0 1 1 4 12 A 2 2 0 1 1 8 12 Z" />
-        <path d="M 24.5 7.5 A 2 2 0 1 1 20.5 7.5 A 2 2 0 1 1 24.5 7.5 Z" />
-        <path d="M 41 12 A 2 2 0 1 1 37 12 A 2 2 0 1 1 41 12 Z" />
-        <path d="M 16 8.5 A 2 2 0 1 1 12 8.5 A 2 2 0 1 1 16 8.5 Z" />
-        <path d="M 33 9 A 2 2 0 1 1 29 9 A 2 2 0 1 1 33 9 Z" />
-        <path
-          d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 25.89,36.43 32.61,35.03 36,36 C 32.61,37.03 25.89,35.57 22.5,38 19.11,35.57 12.39,37.03 9,36 z"
-        />
-        <path d="m 11,38 3,-19.5 5.5,13 L 22.5,19 25,31.5 30.5,18.5 34,38" fill="none"/>
+        <path d="M 8,12 A 2,2 0 1,1 4,12 A 2,2 0 1,1 8,12 z" />
+        <path d="M 24.5,7.5 A 2,2 0 1,1 20.5,7.5 A 2,2 0 1,1 24.5,7.5 z" />
+        <path d="M 41,12 A 2,2 0 1,1 37,12 A 2,2 0 1,1 41,12 z" />
+        <path d="M 16,8.5 A 2,2 0 1,1 12,8.5 A 2,2 0 1,1 16,8.5 z" />
+        <path d="M 33,9 A 2,2 0 1,1 29,9 A 2,2 0 1,1 33,9 z" />
+        <path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38,14 L 31,25 L 31,11 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14,10.5 L 14,25 L 7,14 L 9,26 z" />
+        <path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 32.61,37.03 25.89,35.57 22.5,38 C 19.11,35.57 12.39,37.03 9,36 z" />
       </g>
     </svg>
   );
@@ -213,35 +222,14 @@ export function BlackKing(props: SVGProps<SVGSVGElement>) {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M 22.5 11.63 V 6 M 20 8 h 5" strokeLinecap="round" />
-        <path d="M 22.5,25 C 17,25 12.5,30 12.5,30 C 12.5,30 12.5,30 12.5,30 M 22.5,25 C 28,25 32.5,30 32.5,30 C 32.5,30 32.5,30 32.5,30" strokeLinecap="butt" />
-        <path
-          d="M 12.5,37 C 12.5,37 10.5,35.5 10.5,34.5 10.5,33.5 12.5,32 12.5,32 l 20,0 C 32.5,32 34.5,33.5 34.5,34.5 34.5,35.5 32.5,37 32.5,37 l -20,0 z"
-          strokeLinecap="butt"
-        />
-        <path
-          d="M 22.5,25 C 28,25 32.5,30 32.5,30"
-          fill="none"
-          strokeLinejoin="miter"
-        />
-        <path
-          d="M 12.5,30 C 12.5,30 18,25 22.5,25"
-          fill="none"
-          strokeLinejoin="miter"
-        />
-        <path
-          d="m 11,29 c -0.5,4 3.5,8 3.5,8"
-          fill="none"
-          strokeLinejoin="miter"
-        />
-        <path
-          d="m 34,29 c 0.5,4 -3.5,8 -3.5,8"
-          fill="none"
-          strokeLinejoin="miter"
-        />
-        <path
-          d="M 22.5,15 C 19.5,15 15,16.5 15,20 C 15,23.5 19.5,25 22.5,25 C 25.5,25 30,23.5 30,20 C 30,16.5 25.5,15 22.5,15 Z"
-        />
+        <path d="m 22.5,11.63 0,-5.63 2.5,2.5 -2.5,-2.5 -2.5,2.5" />
+        <path d="M 22.5,25 C 28,25 32.5,30 32.5,30 C 32.5,30 32.5,30 32.5,30 M 22.5,25 C 17,25 12.5,30 12.5,30 C 12.5,30 12.5,30 12.5,30" strokeLinecap="butt" />
+        <path d="M 12.5,37 C 12.5,37 10.5,35.5 10.5,34.5 10.5,33.5 12.5,32 12.5,32 l 20,0 C 32.5,32 34.5,33.5 34.5,34.5 34.5,35.5 32.5,37 32.5,37 l -20,0 z" strokeLinecap="butt" />
+        <path d="M 22.5,25 C 28,25 32.5,30 32.5,30" fill="none" strokeLinejoin="miter" />
+        <path d="M 12.5,30 C 12.5,30 18,25 22.5,25" fill="none" strokeLinejoin="miter" />
+        <path d="m 11,29 c -0.5,4 3.5,8 3.5,8" fill="none" strokeLinejoin="miter" />
+        <path d="m 34,29 c 0.5,4 -3.5,8 -3.5,8" fill="none" strokeLinejoin="miter" />
+        <path d="M 22.5,11.63 C 26.5,14.5 29,18 29,20 C 29,23.5 25.5,25 22.5,25 C 19.5,25 16,23.5 16,20 C 16,18 18.5,14.5 22.5,11.63 Z" />
       </g>
     </svg>
   );
@@ -250,43 +238,24 @@ export function BlackKing(props: SVGProps<SVGSVGElement>) {
 export function WhiteKing(props: SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45" {...props}>
-      <g
+       <g
         fill="none"
         stroke="#000"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M 22.5 11.63 V 6 M 20 8 h 5" strokeLinecap="round" />
-        <path d="M 22.5,25 C 17,25 12.5,30 12.5,30 C 12.5,30 12.5,30 12.5,30 M 22.5,25 C 28,25 32.5,30 32.5,30 C 32.5,30 32.5,30 32.5,30" strokeLinecap="butt" />
-        <path
-          d="M 12.5,37 C 12.5,37 10.5,35.5 10.5,34.5 10.5,33.5 12.5,32 12.5,32 l 20,0 C 32.5,32 34.5,33.5 34.5,34.5 34.5,35.5 32.5,37 32.5,37 l -20,0 z"
-          strokeLinecap="butt"
-        />
-        <path
-          d="M 22.5,25 C 28,25 32.5,30 32.5,30"
-          fill="none"
-          strokeLinejoin="miter"
-        />
-        <path
-          d="M 12.5,30 C 12.5,30 18,25 22.5,25"
-          fill="none"
-          strokeLinejoin="miter"
-        />
-        <path
-          d="m 11,29 c -0.5,4 3.5,8 3.5,8"
-          fill="none"
-          strokeLinejoin="miter"
-        />
-        <path
-          d="m 34,29 c 0.5,4 -3.5,8 -3.5,8"
-          fill="none"
-          strokeLinejoin="miter"
-        />
-        <path
-          d="M 22.5,15 C 19.5,15 15,16.5 15,20 C 15,23.5 19.5,25 22.5,25 C 25.5,25 30,23.5 30,20 C 30,16.5 25.5,15 22.5,15 Z"
-        />
+        <path d="m 22.5,11.63 0,-5.63 2.5,2.5 -2.5,-2.5 -2.5,2.5" />
+        <path d="M 22.5,25 C 28,25 32.5,30 32.5,30 C 32.5,30 32.5,30 32.5,30 M 22.5,25 C 17,25 12.5,30 12.5,30 C 12.5,30 12.5,30 12.5,30" strokeLinecap="butt" />
+        <path d="M 12.5,37 C 12.5,37 10.5,35.5 10.5,34.5 10.5,33.5 12.5,32 12.5,32 l 20,0 C 32.5,32 34.5,33.5 34.5,34.5 34.5,35.5 32.5,37 32.5,37 l -20,0 z" strokeLinecap="butt" />
+        <path d="M 22.5,25 C 28,25 32.5,30 32.5,30" fill="none" strokeLinejoin="miter" />
+        <path d="M 12.5,30 C 12.5,30 18,25 22.5,25" fill="none" strokeLinejoin="miter" />
+        <path d="m 11,29 c -0.5,4 3.5,8 3.5,8" fill="none" strokeLinejoin="miter" />
+        <path d="m 34,29 c 0.5,4 -3.5,8 -3.5,8" fill="none" strokeLinejoin="miter" />
+        <path d="M 22.5,11.63 C 26.5,14.5 29,18 29,20 C 29,23.5 25.5,25 22.5,25 C 19.5,25 16,23.5 16,20 C 16,18 18.5,14.5 22.5,11.63 Z" />
       </g>
     </svg>
   );
 }
+
+    
