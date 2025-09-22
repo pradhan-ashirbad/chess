@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
@@ -20,7 +21,6 @@ import { subscribeToGame, updateGame, joinGame as joinFirebaseGame, createNewGam
 import { PromotionDialog } from "./promotion-dialog";
 import { useRouter } from "next/navigation";
 import { ConfirmationDialog } from "./confirmation-dialog";
-import { MoveHistory } from "./move-history";
 import { CommentaryBox } from "./commentary-box";
 import { getCommentary } from "@/ai/flows/commentary-flow";
 
@@ -380,7 +380,6 @@ export function ChessGame({ gameId }: { gameId: string }) {
             isLoading={isCommentaryLoading}
             persona={gamePersona}
           />
-          <MoveHistory moves={game.history({ verbose: true })} />
         </div>
       </div>
       <AlertDialog open={gameOver.isGameOver} onOpenChange={(open) => { if (!open) { if (gameId && playerId) { clearGameRequest(gameId); } setGameOver({isGameOver: false, message: ''}); }}}>
