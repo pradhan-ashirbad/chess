@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
@@ -21,6 +22,8 @@ import { PromotionDialog } from "./promotion-dialog";
 import { useRouter } from "next/navigation";
 import { ConfirmationDialog } from "./confirmation-dialog";
 import { MoveHistory } from "./move-history";
+import { CommentaryBox } from "./commentary-box";
+import { getCommentary } from "@/ai/flows/commentary-flow";
 
 
 export function ChessGame({ gameId }: { gameId: string }) {
@@ -41,6 +44,9 @@ export function ChessGame({ gameId }: { gameId: string }) {
 
   const [gameRequest, setGameRequest] = useState<{ type: 'new' | 'end'; from: string } | null>(null);
   const [localRequest, setLocalRequest] = useState<'new' | 'end' | null>(null);
+
+  const [commentary, setCommentary] = useState('');
+  const [isCommentaryLoading, setIsCommentaryLoading] = useState(false);
 
 
   const updateCapturedPieces = useCallback((currentGame: Chess) => {
@@ -108,12 +114,30 @@ export function ChessGame({ gameId }: { gameId: string }) {
     }
   }, []);
 
+  const handleNewMoveCommentary = useCallback(async (pgn: string) => {
+    if (pgn) {
+      setIsCommentaryLoading(true);
+      try {
+        const response = await getCommentary({ pgn });
+        setCommentary(response.commentary);
+      } catch (error) {
+        console.error("Failed to get commentary:", error);
+        setCommentary("Could not fetch commentary for the last move.");
+      } finally {
+        setIsCommentaryLoading(false);
+      }
+    }
+  }, []);
+
   const updateGameState = useCallback((currentGame: Chess, currentColor: typeof playerColor) => {
     setBoard(currentGame.board());
     updateCapturedPieces(currentGame);
     checkGameOver(currentGame);
     setIsMyTurn(currentColor === currentGame.turn());
-  }, [updateCapturedPieces, checkGameOver]);
+    if(game.pgn() !== currentGame.pgn()) {
+      handleNewMoveCommentary(currentGame.pgn());
+    }
+  }, [updateCapturedPieces, checkGameOver, handleNewMoveCommentary, game]);
 
 
   useEffect(() => {
@@ -138,9 +162,9 @@ export function ChessGame({ gameId }: { gameId: string }) {
           if (gameData.fen) {
             const newGame = new Chess();
             newGame.loadPgn(gameData.pgn || '');
+            updateGameState(newGame, color);
             setGame(newGame);
             setLastMove(gameData.lastMove || null);
-            updateGameState(newGame, color);
           } else {
             const newGame = new Chess();
              createFirebaseGame(gameId, userId).then(() => {
@@ -348,8 +372,12 @@ export function ChessGame({ gameId }: { gameId: string }) {
             {getPlayerMessage()}
           </div>
         </div>
-        <div className="md:col-span-1">
+        <div className="md:col-span-1 flex flex-col gap-4">
           <MoveHistory moves={game.history()} />
+          <CommentaryBox
+            commentary={commentary}
+            isLoading={isCommentaryLoading}
+          />
         </div>
       </div>
       <AlertDialog open={gameOver.isGameOver} onOpenChange={(open) => { if (!open) { if (gameId && playerId) { clearGameRequest(gameId); } setGameOver({isGameOver: false, message: ''}); }}}>
@@ -385,3 +413,5 @@ export function ChessGame({ gameId }: { gameId: string }) {
     </>
   );
 }
+
+    
